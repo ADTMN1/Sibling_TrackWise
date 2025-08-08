@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #fafbfc;
+  --background: #dcc3ba;
   --foreground: #1a202c;
   --card: #ffffff;
   --card-foreground: #2d3748;
@@ -398,7 +398,7 @@
 
 /* Sidebar enhancements */
 .sidebar-gradient {
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  background: linear-gradient(180deg, #E8ECEF, #C9D1D9);
 }
 
 /* Header enhancements */
@@ -408,7 +408,7 @@
 
 /* Content area */
 .content-area {
-  background: #fafbfc;
+  background: linear-gradient(to bottom right, #F0F2F5, #D0D8E0);
   min-height: 100vh;
 }
 
