@@ -133,6 +133,12 @@ const createOptionService = async(data) => {
   ) {
     throw new Error("All fields are required");
   }
+
+ const allowedTypes = ["Test", "Quiz", "Exam"];
+
+ if (!allowedTypes.includes(question_type)) {
+   throw new Error("Invalid question_type. Must be 'Test', 'Quiz', or 'Exam'.");
+ }
   if (!Array.isArray(option_text) || option_text.length < 2) {
     return res
       .status(400)
