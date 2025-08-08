@@ -1,36 +1,35 @@
 "use client"
 
-import type React from "react"
-import { createContext, useContext, useState, useEffect } from "react"
+import React, { createContext, useContext, useState, useEffect } from "react"
 
 interface User {
   id: string
   username: string
   grade: string
   name: string
-  avatar?: string
   email?: string
-  password?: string
   role?: string
+    avatar?: string;
+
 }
 
 interface AuthContextType {
   user: User | null
+  isAuthenticated: boolean
+  loading: boolean
   login: (username: string, password: string) => Promise<boolean>
   logout: () => void
   updateProfile: (data: Partial<User>) => void
-  updatePassword: (currentPassword: string, newPassword: string) => Promise<boolean>
-  isAuthenticated: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-// Mock user data
+// ⚠️ Replace this mockUsers with real backend API calls
 const mockUsers = [
   {
     id: "1",
     username: "student1",
-    password: "pass123",
+    password: "pass123", // only for mock validation, NEVER store password in state/localStorage
     grade: "5",
     name: "John Doe",
     email: "john@example.com",
@@ -45,119 +44,72 @@ const mockUsers = [
     email: "jane@example.com",
     role: "child",
   },
-  {
-    id: "3",
-    username: "student3",
-    password: "pass789",
-    grade: "7",
-    name: "Mike Johnson",
-    email: "mike@example.com",
-    role: "child",
-  },
 ]
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [loading, setLoading] = useState(true)
 
+  // Load user from localStorage on mount
   useEffect(() => {
     try {
-      const savedUser = localStorage.getItem("user")
-      if (savedUser) {
-        const userData = JSON.parse(savedUser)
-        if (userData && userData.id) {
-          setUser(userData)
+      const storedUser = localStorage.getItem("user")
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser)
+        if (parsedUser && parsedUser.id) {
+          setUser(parsedUser)
           setIsAuthenticated(true)
         }
       }
     } catch (error) {
-      console.error("Error loading user data:", error)
-      try {
-        localStorage.removeItem("user")
-      } catch (e) {
-        console.error("Error removing corrupted user data:", e)
-      }
+      console.error("Error loading user from storage:", error)
+      localStorage.removeItem("user")
+    } finally {
+      setLoading(false)
     }
   }, [])
 
   const login = async (username: string, password: string): Promise<boolean> => {
-    try {
-      const foundUser = mockUsers.find((u) => u.username === username && u.password === password)
-      if (foundUser) {
-        const userData = {
-          id: foundUser.id,
-          username: foundUser.username,
-          grade: foundUser.grade,
-          name: foundUser.name,
-          email: foundUser.email,
-          password: foundUser.password,
-          role: foundUser.role,
-        }
-        setUser(userData)
-        setIsAuthenticated(true)
-        try {
-          localStorage.setItem("user", JSON.stringify(userData))
-        } catch (error) {
-          console.error("Error saving user data:", error)
-        }
-        return true
-      }
-      return false
-    } catch (error) {
-      console.error("Login error:", error)
-      return false
+    // In real app, call backend API here
+    const foundUser = mockUsers.find(
+      (u) => u.username === username && u.password === password
+    )
+    if (foundUser) {
+      const { password, ...userWithoutPassword } = foundUser
+      setUser(userWithoutPassword)
+      setIsAuthenticated(true)
+      localStorage.setItem("user", JSON.stringify(userWithoutPassword))
+      return true
     }
+    return false
   }
 
   const logout = () => {
     setUser(null)
     setIsAuthenticated(false)
-    try {
-      localStorage.removeItem("user")
-      localStorage.removeItem("progress")
-      localStorage.removeItem("timer")
-    } catch (error) {
-      console.error("Error clearing user data:", error)
-    }
+    localStorage.removeItem("user")
   }
 
   const updateProfile = (data: Partial<User>) => {
-    if (user) {
-      try {
-        const updatedUser = { ...user, ...data }
-        setUser(updatedUser)
-        localStorage.setItem("user", JSON.stringify(updatedUser))
-      } catch (error) {
-        console.error("Error updating user data:", error)
-      }
-    }
-  }
-
-  const updatePassword = async (currentPassword: string, newPassword: string): Promise<boolean> => {
-    if (user && user.password === currentPassword) {
-      try {
-        const updatedUser = { ...user, password: newPassword }
-        setUser(updatedUser)
-        localStorage.setItem("user", JSON.stringify(updatedUser))
-        return true
-      } catch (error) {
-        console.error("Error updating password:", error)
-        return false
-      }
-    }
-    return false
+    if (!user) return
+    const updatedUser = { ...user, ...data }
+    setUser(updatedUser)
+    localStorage.setItem("user", JSON.stringify(updatedUser))
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, updateProfile, updatePassword, isAuthenticated }}>
+    <AuthContext.Provider
+      value={{ user, isAuthenticated, loading, login, logout, updateProfile }}
+    >
       {children}
     </AuthContext.Provider>
   )
 }
 
-export const useAuth = () => {
+export function useAuth() {
   const context = useContext(AuthContext)
-  if (context === undefined) {
+  if (!context) {
     throw new Error("useAuth must be used within an AuthProvider")
   }
   return context
