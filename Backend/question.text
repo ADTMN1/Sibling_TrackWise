@@ -1,0 +1,61 @@
+
+=>Test// each chapters
+=>quizes// each lessons
+=>timer// take accepted starting time 
+=>score //connected whith test/quizes and users tables whith foreign id
+
+
+
+questions list=>one table  for questions 
+options/choices->   connected by foreignId to test/quizes/-
+
+column numbers are the same for all questions types
+
+Table: questions
+- id (PK)
+- questions (text)
+- type (enum: 'test', 'quiz')  
+- chapter_id (nullable FK)      
+- lesson_id (nullable FK)       
+- created_at
+- updated_at
+
+Table: options
+- id (PK)
+- question_id (FK → questions.id)
+- option_text (string)A/B/C/D
+- is_correct (boolean)  // to show one is_correct answer and others false
+
+
+Table: timers
+- id (PK)
+- assessment_id (FK → assessments.id)
+- start_time (datetime)
+- end_time (datetime)
+- duration (int)  -- seconds/minutes allowed
+
+
+Table: scores
+- id (PK)
+- user_id (FK → users.id)
+- assessment_id (FK → assessments.id)
+- score_value (int)
+- taken_at (datetime)
+
+
+Table: questions
+- id (PK)
+- question_id (FK → assessments.id)
+- question_text (text)
+- question_type
+- created_at
+
+
+
+
+Table: user_answers
+- id (PK)
+- user_id (FK → users.id)
+- question_id (FK → questions.id)
+- answered_at (datetime)
+-score
