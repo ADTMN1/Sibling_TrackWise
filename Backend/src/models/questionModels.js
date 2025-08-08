@@ -139,4 +139,5 @@ module.exports = {
   Quiz: mongoose.model("Quiz", quizSchema),
   Exam: mongoose.model("Exam", examSchema),
   Score: mongoose.model("Score", ScoreSchema),
-}
+  Option: mongoose.model("Option", optionSchema),
+};

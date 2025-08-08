@@ -27,5 +27,8 @@ router.post("/scores", questionController.createScore);
 // Option
 
 router.post("/create_option", questionController.createOption);
-router.get("get_option/:question_type/:question_id", questionController.getOptions);
+router.get(
+  "/get_option/:question_type/:question_id",
+  questionController.getOptions
+);
 module.exports = router;

@@ -123,7 +123,7 @@ const createScoreService = async (data) => {
 
 
 // Create new options for a question
-const createOptionService = (data) => {
+const createOptionService = async(data) => {
   const { question_type, question_id, option_text, correct_index } = data;
   if (
     !question_type ||
@@ -143,12 +143,12 @@ const createOptionService = (data) => {
     return res.status(400).json({ message: "Invalid correct_index value." });
   }
 
-  const option = new Option({
+  const option = await Option.create({
     question_type,
     question_id,
     option_text,
     correct_index,
-  }).save();
+  });
   return option;
 };
 

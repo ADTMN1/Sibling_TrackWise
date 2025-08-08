@@ -166,13 +166,13 @@ const createOption = async (req, res) => {
 const getOptions = async (req, res) => {
   try {
     const { question_type, question_id } = req.params;
-
+console.log(req.params)
     const options = await getOptionsByQuestion(
       question_id,
       question_type
     );
 
-    if (!options.length) {
+    if (!options || options.length === 0) {
       return res
         .status(404)
         .json({ message: "No options found for this question." });
