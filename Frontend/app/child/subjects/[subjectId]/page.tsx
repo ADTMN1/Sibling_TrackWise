@@ -95,20 +95,43 @@ export default function SubjectPage() {
 
   const getChapterStatus = (chapterId: string) => {
     const progress = getChapterProgress(subjectId, chapterId);
-    const unlocked = isChapterUnlocked(subjectId, chapterId);
+    const chapter = chapters.find((c) => c._id === chapterId);
 
-    if (progress.completed) return "completed";
-    if (unlocked) return "unlocked";
-    return "locked";
+    if (chapter?.chapterNumber === 1) {
+      return progress.completed ? "completed" : "unlocked";
+    }
+
+    if (chapter) {
+      const prevChapter = chapters.find(
+        (c) =>
+          c.semester === chapter.semester &&
+          c.chapterNumber === chapter.chapterNumber - 1
+      );
+
+      if (prevChapter) {
+        const prevProgress = getChapterProgress(subjectId, prevChapter._id);
+        if (!prevProgress.completed) return "locked";
+      }
+    }
+
+    return progress.completed ? "completed" : "unlocked";
   };
 
   const ChapterCard = ({ chapter }: { chapter: ChapterType }) => {
     const status = getChapterStatus(chapter._id);
     const progress = getChapterProgress(subjectId, chapter._id);
-    const progressPercent = (progress.currentPage / progress.totalPages) * 100;
+    const progressPercent = Math.min(
+      100,
+      (progress.currentPage / progress.totalPages) * 100
+    );
 
     const isSemester2Locked = chapter.semester === 2 && !semester1Completed;
+
     const isLocked = status === "locked" || isSemester2Locked;
+
+    const lockReason = isSemester2Locked
+      ? "Complete all Semester 1 chapters first"
+      : `Complete Chapter ${chapter.chapterNumber - 1} to unlock`;
 
     return (
       <Card
@@ -223,9 +246,9 @@ export default function SubjectPage() {
                 <Award className="w-4 h-4" />
                 <span>
                   Mastery:{" "}
-                  {progress.testScore >= 80
+                  {progress.testScore >= 95
                     ? "Advanced"
-                    : progress.testScore >= 60
+                    : progress.testScore >= 85
                     ? "Intermediate"
                     : "Beginner"}
                 </span>
