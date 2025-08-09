@@ -29,6 +29,6 @@ exports.getChaptersBySubject = async (subjectId) => {
   return await Chapter.find({ subject: subjectId });
 };
 
-exports.getChaptersByNumber = async (number) => {
-  return await Chapter.find({ number: number });
+exports.getChaptersByNumber = async (chapterNumber) => {
+  return await Chapter.find({ chapterNumber: chapterNumber });
 };

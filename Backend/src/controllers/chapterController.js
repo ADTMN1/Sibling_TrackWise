@@ -74,15 +74,15 @@ exports.getChaptersBySubject = async (req, res) => {
 
 exports.getChapterByNumber = async (req, res) => {
   try {
-    const chapter = await ChapterService.getChapterById(req.params.chapterId);
-    if (!chapter) return res.status(404).json({ message: "Chapter not found" });
+    const chapterNumber = parseInt(req.params.chapterNumber);
 
-    // Assuming chapter has a property 'number' for chapter number
-    if (chapter.number !== parseInt(req.params.chapterNumber)) {
-      return res.status(404).json({ message: "Chapter number does not match" });
+    const chapters = await ChapterService.getChaptersByNumber(chapterNumber);
+
+    if (!chapters || chapters.length === 0) {
+      return res.status(404).json({ message: "Chapter not found" });
     }
 
-    res.json(chapter);
+    res.json(chapters);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

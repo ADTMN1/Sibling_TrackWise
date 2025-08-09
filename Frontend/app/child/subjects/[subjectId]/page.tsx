@@ -1,100 +1,136 @@
-"use client"
+"use client";
 
-import { useParams, useRouter } from "next/navigation"
-import { useProgress } from "@/contexts/ProgressContext"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Lock, CheckCircle, BookOpen, Clock, Trophy, ChevronLeft, ArrowRight, Zap, Award } from "lucide-react"
-import Link from "next/link"
-
-const subjects = {
-  math: { 
-    name: "Mathematics", 
-    icon: "📊",
-    gradient: "from-[#B5EEDC] via-[#A2E7C9] to-[#89E1B8]",
-    bgGradient: "bg-gradient-to-br from-[#E8FDEF] to-[#D3F8EC]"
-  },
-  science: { 
-    name: "Science", 
-    icon: "🔬",
-    gradient: "from-[#7DD3FC] via-[#38BDF8] to-[#0EA5E9]",
-    bgGradient: "bg-gradient-to-br from-[#E0F2FE] to-[#F0F9FF]"
-  },
-  english: { 
-    name: "English", 
-    icon: "📚",
-    gradient: "from-[#D2B48C] via-[#F3E5AB] to-[#FFF8E1]",
-    bgGradient: "bg-gradient-to-br from-[#FDF7EE] to-[#F6EFE2]"
-  },
-  history: { 
-    name: "History",  
-    icon: "🏛️",
-    gradient: "from-[#a7a2a9] via-[#c6b8ae] to-[#f1e9e5]",
-    bgGradient: "bg-gradient-to-br from-[#FAF4E9] to-[#F4F0F2]"
-  },
-}
-
-const chapters = [
-  { id: "chapter-1", title: "Introduction to Basics", semester: 1 },
-  { id: "chapter-2", title: "Fundamental Concepts", semester: 1 },
-  { id: "chapter-3", title: "Advanced Topics", semester: 1 },
-  { id: "chapter-4", title: "Practical Applications", semester: 1 },
-  { id: "chapter-5", title: "Problem Solving", semester: 1 },
-  { id: "chapter-6", title: "Complex Theories", semester: 2 },
-  { id: "chapter-7", title: "Real World Examples", semester: 2 },
-  { id: "chapter-8", title: "Advanced Techniques", semester: 2 },
-  { id: "chapter-9", title: "Expert Level", semester: 2 },
-  { id: "chapter-10", title: "Mastery Assessment", semester: 2 },
-]
+import React, { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useProgress } from "@/contexts/ProgressContext";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Lock,
+  CheckCircle,
+  BookOpen,
+  Clock,
+  Trophy,
+  ChevronLeft,
+  ArrowRight,
+  Zap,
+  Award,
+} from "lucide-react";
+import Link from "next/link";
 
 export default function SubjectPage() {
-  const router = useRouter()
-  const params = useParams()
-  const subjectId = params.subjectId as string
-  const { getChapterProgress, isChapterUnlocked } = useProgress()
+  const router = useRouter();
+  const params = useParams();
+  const subjectId = params.subjectId as string;
 
-  const subject = subjects[subjectId as keyof typeof subjects]
+  const { getChapterProgress, isChapterUnlocked } = useProgress();
 
-  if (!subject) {
-    return <div>Subject not found</div>
-  }
+  type SubjectType = {
+    id: string;
+    name: string;
+    icon: React.ReactNode;
+    bgGradient: string;
+  };
 
-  const semester1Chapters = chapters.filter((ch) => ch.semester === 1)
-  const semester2Chapters = chapters.filter((ch) => ch.semester === 2)
+  type ChapterType = {
+    _id: string;
+    title: string;
+    semester: number;
+    chapterNumber: number;
+  };
 
-  const semester1Completed = semester1Chapters.every((ch) => getChapterProgress(subjectId, ch.id).completed)
+  const [subject, setSubject] = useState<null | SubjectType>(null);
+  const [chapters, setChapters] = useState<ChapterType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!subjectId) return;
+
+    async function fetchData() {
+      setLoading(true);
+      try {
+        const [subjectRes, chaptersRes] = await Promise.all([
+          fetch(`http://localhost:5000/api/subjects/${subjectId}`),
+          fetch(`http://localhost:5000/api/chapters/subject/${subjectId}`),
+        ]);
+
+        if (!subjectRes.ok) throw new Error("Failed to load subject");
+        if (!chaptersRes.ok) throw new Error("Failed to load chapters");
+
+        const subjectData = await subjectRes.json();
+        const chaptersData = await chaptersRes.json();
+
+        setSubject(subjectData);
+
+        setChapters(chaptersData);
+        setError("");
+      } catch (err: any) {
+        setError(err.message || "An error occurred");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, [subjectId]);
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
+  if (!subject) return <div>Subject not found</div>;
+
+  const semester1Chapters = chapters.filter((ch) => ch.semester === 1);
+  const semester2Chapters = chapters.filter((ch) => ch.semester === 2);
+
+  const semester1Completed = semester1Chapters.every(
+    (ch) => getChapterProgress(subjectId, ch._id).completed
+  );
 
   const getChapterStatus = (chapterId: string) => {
-    const progress = getChapterProgress(subjectId, chapterId)
-    const unlocked = isChapterUnlocked(subjectId, chapterId)
+    const progress = getChapterProgress(subjectId, chapterId);
+    const unlocked = isChapterUnlocked(subjectId, chapterId);
 
-    if (progress.completed) return "completed"
-    if (unlocked) return "unlocked"
-    return "locked"
-  }
+    if (progress.completed) return "completed";
+    if (unlocked) return "unlocked";
+    return "locked";
+  };
 
-  const ChapterCard = ({ chapter }: { chapter: (typeof chapters)[0] }) => {
-    const status = getChapterStatus(chapter.id)
-    const progress = getChapterProgress(subjectId, chapter.id)
-    const progressPercent = (progress.currentPage / progress.totalPages) * 100
+  const ChapterCard = ({ chapter }: { chapter: ChapterType }) => {
+    const status = getChapterStatus(chapter._id);
+    const progress = getChapterProgress(subjectId, chapter._id);
+    const progressPercent = (progress.currentPage / progress.totalPages) * 100;
 
-    // Check if this is a semester 2 chapter and semester 1 is not complete
-    const isSemester2Locked = chapter.semester === 2 && !semester1Completed
+    const isSemester2Locked = chapter.semester === 2 && !semester1Completed;
+    const isLocked = status === "locked" || isSemester2Locked;
 
     return (
-      <Card className={`relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
-        status === "completed" ? "border-[#89E1B8]" : 
-        status === "unlocked" && !isSemester2Locked ? "border-[#A2E7C9]" : 
-        "border-gray-200"
-      }`}>
+      <Card
+        className={`relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
+          status === "completed"
+            ? "border-[#89E1B8]"
+            : status === "unlocked" && !isSemester2Locked
+            ? "border-[#A2E7C9]"
+            : "border-gray-200"
+        }`}
+      >
         {/* Status indicator bar */}
-        <div className={`absolute top-0 left-0 h-1 w-full ${
-          status === "completed" ? "bg-[#89E1B8]" : 
-          status === "unlocked" && !isSemester2Locked ? "bg-[#A2E7C9]" : 
-          "bg-gray-200"
-        }`}></div>
-        
+        <div
+          className={`absolute top-0 left-0 h-1 w-full ${
+            status === "completed"
+              ? "bg-[#89E1B8]"
+              : status === "unlocked" && !isSemester2Locked
+              ? "bg-[#A2E7C9]"
+              : "bg-gray-200"
+          }`}
+        ></div>
+
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg flex items-center gap-2">
@@ -102,7 +138,7 @@ export default function SubjectPage() {
                 <div className="p-1.5 rounded-full bg-[#E8FDEF]">
                   <CheckCircle className="w-5 h-5 text-[#89E1B8]" />
                 </div>
-              ) : (status === "locked" || isSemester2Locked) ? (
+              ) : status === "locked" || isSemester2Locked ? (
                 <div className="p-1.5 rounded-full bg-gray-100">
                   <Lock className="w-5 h-5 text-gray-400" />
                 </div>
@@ -119,19 +155,22 @@ export default function SubjectPage() {
                   status === "completed"
                     ? "default"
                     : status === "unlocked" && !isSemester2Locked
-                      ? "secondary"
-                      : "outline"
+                    ? "secondary"
+                    : "outline"
                 }
                 className="rounded-md"
               >
                 {status === "completed"
                   ? "Completed"
                   : status === "unlocked" && !isSemester2Locked
-                    ? "Available"
-                    : "Locked"}
+                  ? "Available"
+                  : "Locked"}
               </Badge>
               {progress.testScore && (
-                <Badge variant="outline" className="text-xs rounded-md bg-[#E8FDEF] border-[#A2E7C9] text-[#1F2937]">
+                <Badge
+                  variant="outline"
+                  className="text-xs rounded-md bg-[#E8FDEF] border-[#A2E7C9] text-[#1F2937]"
+                >
                   <Trophy className="w-3 h-3 mr-1" />
                   {progress.testScore}%
                 </Badge>
@@ -139,9 +178,12 @@ export default function SubjectPage() {
             </div>
           </div>
           <CardDescription className="text-[#64748B]">
-            Chapter {chapter.id.split("-")[1]} • Semester {chapter.semester}
+            Chapter {chapter.chapterNumber ?? "?"} • Semester{" "}
+            {chapter.semester ?? 1}
             {isSemester2Locked && (
-              <span className="text-[#FF8A6B] ml-2">Complete Semester 1 first</span>
+              <span className="text-[#FF8A6B] ml-2">
+                Complete Semester 1 first
+              </span>
             )}
           </CardDescription>
         </CardHeader>
@@ -150,7 +192,9 @@ export default function SubjectPage() {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-[#64748B]">Progress</span>
-                <span className="font-medium text-[#1F2937]">{Math.round(progressPercent)}%</span>
+                <span className="font-medium text-[#1F2937]">
+                  {Math.round(progressPercent)}%
+                </span>
               </div>
               <div className="relative h-2 w-full overflow-hidden rounded-full bg-gray-100">
                 <div
@@ -177,49 +221,67 @@ export default function SubjectPage() {
             {progress.testScore && (
               <div className="flex items-center gap-1">
                 <Award className="w-4 h-4" />
-                <span>Mastery: {progress.testScore >= 80 ? "Advanced" : progress.testScore >= 60 ? "Intermediate" : "Beginner"}</span>
+                <span>
+                  Mastery:{" "}
+                  {progress.testScore >= 80
+                    ? "Advanced"
+                    : progress.testScore >= 60
+                    ? "Intermediate"
+                    : "Beginner"}
+                </span>
               </div>
             )}
           </div>
 
           <div className="flex gap-2">
             {status !== "locked" && !isSemester2Locked && (
-              <Link href={`/child/subjects/${subjectId}/chapters/${chapter.id}`} className="flex-1">
-                <Button 
+              <Link
+                href={`/child/subjects/${subjectId}/chapters/${chapter._id}`}
+                className="flex-1"
+              >
+                <Button
                   className={`w-full rounded-lg ${
-                    status === "completed" ? 
-                    "bg-[#E8FDEF] text-[#1F2937] hover:bg-[#D3F8EC] border border-[#A2E7C9]" : 
-                    "bg-gradient-to-r from-[#A2E7C9] to-[#89E1B8] text-white hover:opacity-90"
+                    status === "completed"
+                      ? "bg-[#E8FDEF] text-[#1F2937] hover:bg-[#D3F8EC] border border-[#A2E7C9]"
+                      : "bg-gradient-to-r from-[#A2E7C9] to-[#89E1B8] text-white hover:opacity-90"
                   }`}
                 >
-                  {status === "completed" ? "Review" : progress.currentPage > 1 ? "Continue" : "Start"}
+                  {status === "completed"
+                    ? "Review"
+                    : progress.currentPage > 1
+                    ? "Continue"
+                    : "Start"}
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </Link>
             )}
             {status === "completed" && (
-              <Link href={`/child/subjects/${subjectId}/chapters/${chapter.id}/test`}>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+              <Link
+                href={`/child/subjects/${subjectId}/chapters/${chapter._id}/test`}
+              >
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="rounded-lg border-[#A2E7C9] text-[#1F2937] hover:bg-[#E8FDEF]"
                 >
-                  {progress.testScore && progress.testScore >= 80 ? "Review Test" : "Retake Test"}
+                  {progress.testScore && progress.testScore >= 80
+                    ? "Review Test"
+                    : "Retake Test"}
                 </Button>
               </Link>
             )}
           </div>
         </CardContent>
       </Card>
-    )
-  }
+    );
+  };
 
   return (
     <div className="p-4 md:p-6 space-y-6 md:space-y-8 bg-gradient-to-br from-[#F8FAFC] to-[#F1F5F9]">
       {/* Back Button */}
-      <Button 
-        variant="ghost" 
-        onClick={() => router.push("/child/subjects")} 
+      <Button
+        variant="ghost"
+        onClick={() => router.push("/child/subjects")}
         className="flex items-center gap-2 text-[#64748B] hover:text-[#1F2937] hover:bg-[#E8FDEF]"
       >
         <ChevronLeft className="w-4 h-4" />
@@ -244,7 +306,9 @@ export default function SubjectPage() {
       {/* Semester 1 */}
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <h2 className="text-xl md:text-2xl font-bold text-[#1F2937]">Semester 1</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-[#1F2937]">
+            Semester 1
+          </h2>
           {semester1Completed && (
             <Badge className="bg-[#89E1B8] hover:bg-[#A2E7C9] text-[#1F2937] rounded-md">
               <CheckCircle className="w-4 h-4 mr-1" />
@@ -254,7 +318,7 @@ export default function SubjectPage() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {semester1Chapters.map((chapter) => (
-            <ChapterCard key={chapter.id} chapter={chapter} />
+            <ChapterCard key={`sem1-${chapter._id}`} chapter={chapter} />
           ))}
         </div>
       </div>
@@ -262,9 +326,14 @@ export default function SubjectPage() {
       {/* Semester 2 */}
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <h2 className="text-xl md:text-2xl font-bold text-[#1F2937]">Semester 2</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-[#1F2937]">
+            Semester 2
+          </h2>
           {!semester1Completed && (
-            <Badge variant="outline" className="rounded-md border-[#FF8A6B] text-[#FF8A6B]">
+            <Badge
+              variant="outline"
+              className="rounded-md border-[#FF8A6B] text-[#FF8A6B]"
+            >
               <Lock className="w-4 h-4 mr-1" />
               Complete Semester 1 to unlock
             </Badge>
@@ -272,7 +341,7 @@ export default function SubjectPage() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {semester2Chapters.map((chapter) => (
-            <ChapterCard key={chapter.id} chapter={chapter} />
+            <ChapterCard key={chapter._id} chapter={chapter} />
           ))}
         </div>
       </div>
@@ -287,8 +356,12 @@ export default function SubjectPage() {
                   <Award className="w-6 h-6 text-[#FF8A6B]" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-[#1F2937]">Mixed Questions Available!</h3>
-                  <p className="text-[#64748B]">Test your knowledge across multiple chapters</p>
+                  <h3 className="text-lg font-semibold text-[#1F2937]">
+                    Mixed Questions Available!
+                  </h3>
+                  <p className="text-[#64748B]">
+                    Test your knowledge across multiple chapters
+                  </p>
                 </div>
               </div>
               <Link href="/child/mixed-questions">
@@ -301,5 +374,5 @@ export default function SubjectPage() {
         </Card>
       )}
     </div>
-  )
+  );
 }
