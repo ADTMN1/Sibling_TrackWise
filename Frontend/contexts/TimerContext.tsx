@@ -17,6 +17,8 @@ interface TimerContextType {
   pauseReadingTimer: () => void
   isReadingMode: boolean
   setReadingMode: (reading: boolean) => void
+  isQuizMode: boolean
+  setQuizMode: (quiz: boolean) => void
 }
 
 const TimerContext = createContext<TimerContextType | undefined>(undefined)
@@ -27,6 +29,7 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
   const [isRunning, setIsRunning] = useState(false)
   const [isTimerActive, setIsTimerActive] = useState(false)
   const [isReadingMode, setIsReadingMode] = useState(false)
+  const [isQuizMode, setIsQuizMode] = useState(false) // New state for quiz/test mode
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // Load saved timer data
@@ -84,21 +87,21 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isRunning, isTimerActive])
 
-  // Auto-pause when leaving the page and auto-resume when returning
+  // Auto-pause/resume based on visibility, but skip pause during quiz mode
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.hidden && isTimerActive) {
-        // Page is hidden (user switched tabs or minimized), pause timer
+      if (document.hidden && isTimerActive && !isQuizMode) {
+        // Pause timer only if not in quiz mode
         setIsRunning(false)
       } else if (!document.hidden && isTimerActive) {
-        // Page is visible again, resume timer automatically
+        // Resume timer when page is visible
         setIsRunning(true)
       }
     }
 
     const handleBeforeUnload = () => {
-      // Pause timer when leaving the page
-      if (isRunning) {
+      // Pause timer when leaving the page, unless in quiz mode
+      if (isRunning && !isQuizMode) {
         setIsRunning(false)
       }
     }
@@ -110,7 +113,7 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
       document.removeEventListener("visibilitychange", handleVisibilityChange)
       window.removeEventListener("beforeunload", handleBeforeUnload)
     }
-  }, [isTimerActive])
+  }, [isTimerActive, isQuizMode])
 
   // Cleanup on unmount
   useEffect(() => {
@@ -157,7 +160,9 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
     const hours = Math.floor(seconds / 3600)
     const minutes = Math.floor((seconds % 3600) / 60)
     const secs = seconds % 60
-    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
+    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${secs
+      .toString()
+      .padStart(2, "0")}`
   }
 
   const setTimerActive = (active: boolean) => {
@@ -172,6 +177,17 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
   const setReadingMode = (reading: boolean) => {
     setIsReadingMode(reading)
     if (reading) {
+      setIsTimerActive(true)
+      setIsRunning(true)
+    } else {
+      setIsTimerActive(false)
+      setIsRunning(false)
+    }
+  }
+
+  const setQuizMode = (quiz: boolean) => {
+    setIsQuizMode(quiz)
+    if (quiz) {
       setIsTimerActive(true)
       setIsRunning(true)
     } else {
@@ -196,6 +212,8 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
         pauseReadingTimer,
         isReadingMode,
         setReadingMode,
+        isQuizMode,
+        setQuizMode,
       }}
     >
       {children}

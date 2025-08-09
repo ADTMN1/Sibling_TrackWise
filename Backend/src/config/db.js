@@ -5,14 +5,16 @@ const connectDB = async () => {
     const conn = await mongoose.connect(process.env.MONGO_URI);
 
     if (conn.connection.readyState === 1) {
+  
       console.log(`MongoDB Connected: ${conn.connection.host}`);
     } else {
-      console.error("MongoDB connection not ready");
+    console.error("MongoDB connection not ready");
       process.exit(1);
     }
   } catch (error) {
     console.error(`Error: ${error.message}`);
-    process.exit(1);
+    process.exit(1);  
+    
   }
 };
 
