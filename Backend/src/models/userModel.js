@@ -7,7 +7,7 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   role: { type: String, enum: ["admin", "parent", "child"], required: true },
   grade: {
-    type: String,
+    type: Number,
     required: function () {
       return this.role === "child";
     },
@@ -43,5 +43,3 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
 };
 
 module.exports = mongoose.model("User", userSchema);
-
-
