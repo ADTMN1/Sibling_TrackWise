@@ -1,111 +1,194 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useAuth } from "@/contexts/AuthContext"
-import { useProgress } from "@/contexts/ProgressContext"
-import { useTimer } from "@/contexts/TimerContext"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Skeleton } from "@/components/ui/skeleton"
-import { BookOpen, Clock, Target, TrendingUp, Award, Calendar, ChevronRight, Play, BarChart3 } from "lucide-react"
-import Link from "next/link"
+import { useEffect, useState, useCallback } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useProgress } from "@/contexts/ProgressContext";
+import { useTimer } from "@/contexts/TimerContext";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  BookOpen,
+  Clock,
+  Target,
+  TrendingUp,
+  Award,
+  Calendar,
+  ChevronRight,
+  Play,
+  BarChart3,
+} from "lucide-react";
+import Link from "next/link";
 
 interface DashboardStats {
-  totalSubjects: number
-  completedChapters: number
-  totalChapters: number
-  averageScore: number
-  studyStreak: number
-  totalStudyTime: number
-  weeklyProgress: number
-  upcomingTests: number
+  totalSubjects: number;
+  completedChapters: number;
+  totalChapters: number;
+  averageScore: number;
+  studyStreak: number;
+  totalStudyTime: number;
+  weeklyProgress: number;
+  upcomingTests: number;
+}
+
+interface Subject {
+  _id: string;
+  name: string;
+  description?: string;
+  totalChapters?: number;
+}
+
+interface SubjectStyle {
+  gradient: string;
+  bgGradient: string;
+  borderColor: string;
+  icon: string;
+}
+
+interface RecentActivity {
+  type: "completed" | "started" | "achievement";
+  subject?: string;
+  chapter?: string;
+  score?: number;
+  title?: string;
+  description?: string;
+  time: string;
+  icon: React.ComponentType<{ className?: string }>;
+  color: string;
+  bgColor: string;
+}
+
+interface UpcomingLesson {
+  subject: string;
+  chapter: string;
+  difficulty: "Easy" | "Medium" | "Hard";
+  estimatedTime: string;
+  color: string;
+  textColor: string;
+  bgColor: string;
 }
 
 export default function DashboardPage() {
-  const { user } = useAuth()
-  const { getSubjectProgress, getOverallProgress, getCompletedChapters } = useProgress()
-  const { dailyTime, formatTime, startTimer } = useTimer()
-  const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { user } = useAuth();
+  const { getSubjectProgress, getOverallProgress, getCompletedChapters } =
+    useProgress();
+  const { dailyTime, formatTime, startTimer } = useTimer();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const getStylingForSubject = useCallback((name: string): SubjectStyle => {
+    switch (name.toLowerCase()) {
+      case "mathematics":
+        return {
+          gradient: "from-violet-500 via-purple-500 to-indigo-600",
+          bgGradient: "from-violet-50 to-purple-50",
+          borderColor: "border-violet-200",
+          icon: "📊",
+        };
+      case "science":
+        return {
+          gradient: "from-emerald-500 via-teal-500 to-cyan-600",
+          bgGradient: "from-emerald-50 to-teal-50",
+          borderColor: "border-emerald-200",
+          icon: "🔬",
+        };
+      case "english":
+        return {
+          gradient: "from-rose-500 via-pink-500 to-purple-600",
+          bgGradient: "from-rose-50 to-pink-50",
+          borderColor: "border-rose-200",
+          icon: "📚",
+        };
+      case "history":
+        return {
+          gradient: "from-amber-500 via-orange-500 to-red-600",
+          bgGradient: "from-amber-50 to-orange-50",
+          borderColor: "border-amber-200",
+          icon: "🏛️",
+        };
+      default:
+        return {
+          gradient: "from-gray-400 to-gray-600",
+          bgGradient: "from-gray-100 to-gray-200",
+          borderColor: "border-gray-300",
+          icon: "📘",
+        };
+    }
+  }, []);
 
   useEffect(() => {
-    const calculateStats = () => {
-      const subjects = ["math", "science", "english", "history"]
-      let totalChapters = 0
-      let completedChapters = 0
-      let totalScore = 0
-      let subjectsWithScores = 0
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-      subjects.forEach((subjectId) => {
-        const progress = getSubjectProgress(subjectId)
-        totalChapters += progress.totalChapters
-        completedChapters += progress.completedChapters
-        if (progress.averageScore > 0) {
-          totalScore += progress.averageScore
-          subjectsWithScores++
-        }
-      })
+        const subjectsResponse = await fetch(
+          "http://localhost:5000/api/subjects"
+        );
+        if (!subjectsResponse.ok) throw new Error("Failed to fetch subjects");
+        const subjectsData = await subjectsResponse.json();
+        setSubjects(subjectsData);
 
-      const overallProgress = getOverallProgress()
+        // Calculate stats
+        const subjects = ["math", "science", "english", "history"];
+        let totalChapters = 0;
+        let completedChapters = 0;
+        let totalScore = 0;
+        let subjectsWithScores = 0;
 
-      setStats({
-        totalSubjects: subjects.length,
-        completedChapters,
-        totalChapters,
-        averageScore: subjectsWithScores > 0 ? Math.round(totalScore / subjectsWithScores) : 0,
-        studyStreak: 7, // Mock data
-        totalStudyTime: dailyTime,
-        weeklyProgress: overallProgress,
-        upcomingTests: 3, // Mock data
-      })
-      setLoading(false)
-    }
+        subjects.forEach((subjectId) => {
+          const progress = getSubjectProgress(subjectId);
+          totalChapters += progress.totalChapters;
+          completedChapters += progress.completedChapters;
+          if (progress.averageScore > 0) {
+            totalScore += progress.averageScore;
+            subjectsWithScores++;
+          }
+        });
 
-    calculateStats()
-  }, [getSubjectProgress, getOverallProgress, dailyTime])
+        const overallProgress = getOverallProgress();
 
-  const subjects = [
-    {
-      id: "math",
-      name: "Mathematics",
-      gradient: "from-violet-500 via-purple-500 to-indigo-600",
-      bgGradient: "from-violet-50 to-purple-50",
-      borderColor: "border-violet-200",
-      icon: "📊",
-    },
-    {
-      id: "science",
-      name: "Science",
-      gradient: "from-emerald-500 via-teal-500 to-cyan-600",
-      bgGradient: "from-emerald-50 to-teal-50",
-      borderColor: "border-emerald-200",
-      icon: "🔬",
-    },
-    {
-      id: "english",
-      name: "English",
-      gradient: "from-rose-500 via-pink-500 to-purple-600",
-      bgGradient: "from-rose-50 to-pink-50",
-      borderColor: "border-rose-200",
-      icon: "📚",
-    },
-    {
-      id: "history",
-      name: "History",
-      gradient: "from-amber-500 via-orange-500 to-red-600",
-      bgGradient: "from-amber-50 to-orange-50",
-      borderColor: "border-amber-200",
-      icon: "🏛️",
-    },
-  ]
+        setStats({
+          totalSubjects: subjects.length,
+          completedChapters,
+          totalChapters,
+          averageScore:
+            subjectsWithScores > 0
+              ? Math.round(totalScore / subjectsWithScores)
+              : 0,
+          studyStreak: 7, // Mock data
+          totalStudyTime: dailyTime,
+          weeklyProgress: overallProgress,
+          upcomingTests: 3, // Mock data
+        });
+      } catch (err) {
+        setError("Failed to load dashboard data. Please try again later.");
+        console.error("Error fetching data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [getSubjectProgress, getOverallProgress, dailyTime, getStylingForSubject]);
 
   const getSubjectProgressPercent = (subjectId: string) => {
-    const progress = getSubjectProgress(subjectId)
-    return progress.totalChapters > 0 ? Math.round((progress.completedChapters / progress.totalChapters) * 100) : 0
-  }
+    const progress = getSubjectProgress(subjectId);
+    return progress.totalChapters > 0
+      ? Math.round((progress.completedChapters / progress.totalChapters) * 100)
+      : 0;
+  };
 
-  const recentActivities = [
+  const recentActivities: RecentActivity[] = [
     {
       type: "completed",
       subject: "Mathematics",
@@ -134,9 +217,9 @@ export default function DashboardPage() {
       color: "text-amber-600",
       bgColor: "bg-amber-100",
     },
-  ]
+  ];
 
-  const upcomingLessons = [
+  const upcomingLessons: UpcomingLesson[] = [
     {
       subject: "Mathematics",
       chapter: "Geometry Fundamentals",
@@ -164,7 +247,7 @@ export default function DashboardPage() {
       textColor: "text-rose-700",
       bgColor: "bg-rose-50",
     },
-  ]
+  ];
 
   if (loading) {
     return (
@@ -183,7 +266,43 @@ export default function DashboardPage() {
           <Skeleton className="h-96" />
         </div>
       </div>
-    )
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 content-area">
+        <div className="rounded-lg bg-red-50 p-4 border border-red-200">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg
+                className="h-5 w-5 text-red-400"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">{error}</h3>
+              <div className="mt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => window.location.reload()}
+                  className="text-sm text-red-700 hover:bg-red-100"
+                >
+                  Try again
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -193,29 +312,37 @@ export default function DashboardPage() {
         <h1 className="text-4xl font-bold bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
           Welcome back, {user?.name}!
         </h1>
-        <p className="text-slate-600 text-lg">Here's your learning progress and upcoming activities.</p>
+        <p className="text-slate-600 text-lg">
+          Here's your learning progress and upcoming activities.
+        </p>
       </div>
 
       {/* Stats Cards */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-gradient-to-br from-violet-50 to-purple-50 border-violet-200 hover:shadow-lg transition-all duration-300 hover:scale-105">
+        <Card className="bg-gradient-to-br from-violet-50 to-purple-50 border-violet-200 hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-violet-700">Study Time Today</CardTitle>
+            <CardTitle className="text-sm font-medium text-violet-700">
+              Study Time Today
+            </CardTitle>
             <div className="p-2 bg-violet-100 rounded-lg">
               <Clock className="h-4 w-4 text-violet-600" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-violet-800">{formatTime(stats?.totalStudyTime || 0)}</div>
+            <div className="text-2xl font-bold text-violet-800">
+              {formatTime(stats?.totalStudyTime || 0)}
+            </div>
             <p className="text-xs text-violet-600 mt-1">
               <span className="text-emerald-600">+12%</span> from yesterday
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200 hover:shadow-lg transition-all duration-300 hover:scale-105">
+        <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200 hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-emerald-700">Chapters Completed</CardTitle>
+            <CardTitle className="text-sm font-medium text-emerald-700">
+              Chapters Completed
+            </CardTitle>
             <div className="p-2 bg-emerald-100 rounded-lg">
               <BookOpen className="h-4 w-4 text-emerald-600" />
             </div>
@@ -225,35 +352,48 @@ export default function DashboardPage() {
               {stats?.completedChapters}/{stats?.totalChapters}
             </div>
             <p className="text-xs text-emerald-600 mt-1">
-              {stats?.totalChapters ? Math.round((stats.completedChapters / stats.totalChapters) * 100) : 0}% complete
+              {stats?.totalChapters
+                ? Math.round(
+                    (stats.completedChapters / stats.totalChapters) * 100
+                  )
+                : 0}
+              % complete
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-rose-50 to-pink-50 border-rose-200 hover:shadow-lg transition-all duration-300 hover:scale-105">
+        <Card className="bg-gradient-to-br from-rose-50 to-pink-50 border-rose-200 hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-rose-700">Average Score</CardTitle>
+            <CardTitle className="text-sm font-medium text-rose-700">
+              Average Score
+            </CardTitle>
             <div className="p-2 bg-rose-100 rounded-lg">
               <Target className="h-4 w-4 text-rose-600" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-rose-800">{stats?.averageScore || 0}%</div>
+            <div className="text-2xl font-bold text-rose-800">
+              {stats?.averageScore || 0}%
+            </div>
             <p className="text-xs text-rose-600 mt-1">
               <span className="text-emerald-600">+5%</span> from last week
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200 hover:shadow-lg transition-all duration-300 hover:scale-105">
+        <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200 hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-amber-700">Study Streak</CardTitle>
+            <CardTitle className="text-sm font-medium text-amber-700">
+              Study Streak
+            </CardTitle>
             <div className="p-2 bg-amber-100 rounded-lg">
               <Award className="h-4 w-4 text-amber-600" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-amber-800">{stats?.studyStreak || 0} days</div>
+            <div className="text-2xl font-bold text-amber-800">
+              {stats?.studyStreak || 0} days
+            </div>
             <p className="text-xs text-amber-600 mt-1">Keep it up!</p>
           </CardContent>
         </Card>
@@ -264,48 +404,56 @@ export default function DashboardPage() {
         <h2 className="text-2xl font-bold text-slate-800">Your Subjects</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {subjects.map((subject) => {
-            const progress = getSubjectProgressPercent(subject.id)
-            const completedChapters = getCompletedChapters(subject.id).length
+            const style = getStylingForSubject(subject.name);
+            const progress = getSubjectProgressPercent(subject._id);
+            const completedChapters =
+              getCompletedChapters(subject._id)?.length || 0;
+            const totalChapters =
+              getSubjectProgress(subject._id).totalChapters || 10;
 
             return (
               <Card
-                key={subject.id}
-                className={`bg-gradient-to-br ${subject.bgGradient} ${subject.borderColor} hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer`}
+                key={subject._id}
+                className={`bg-gradient-to-br ${style.bgGradient} ${style.borderColor} hover:shadow-xl transition-all duration-300 hover:scale-[1.02] cursor-pointer`}
               >
                 <CardHeader className="pb-3">
                   <div
-                    className={`w-12 h-12 rounded-xl bg-gradient-to-r ${subject.gradient} flex items-center justify-center text-white text-xl mb-3 shadow-lg`}
+                    className={`w-12 h-12 rounded-xl bg-gradient-to-r ${style.gradient} flex items-center justify-center text-white text-xl mb-3 shadow-lg`}
                   >
-                    {subject.icon}
+                    {style.icon}
                   </div>
-                  <CardTitle className="text-lg text-slate-800">{subject.name}</CardTitle>
+                  <CardTitle className="text-lg text-slate-800">
+                    {subject.name}
+                  </CardTitle>
                   <CardDescription className="text-slate-600">
-                    {completedChapters}/10 chapters completed
+                    {completedChapters}/{totalChapters} chapters completed
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-600">Progress</span>
-                      <span className="font-semibold text-slate-800">{Math.round(progress)}%</span>
+                      <span className="font-semibold text-slate-800">
+                        {progress}%
+                      </span>
                     </div>
                     <div className="w-full bg-white/50 rounded-full h-2">
                       <div
-                        className={`h-2 rounded-full bg-gradient-to-r ${subject.gradient} transition-all duration-500`}
+                        className={`h-2 rounded-full bg-gradient-to-r ${style.gradient} transition-all duration-500`}
                         style={{ width: `${progress}%` }}
                       ></div>
                     </div>
                   </div>
-                  <Link href={`/child/subjects/${subject.id}`}>
+                  <Link href={`/child/subjects/${subject._id}`} passHref>
                     <Button
-                      className={`w-full bg-gradient-to-r ${subject.gradient} hover:opacity-90 text-white shadow-lg hover:shadow-xl transition-all duration-300`}
+                      className={`w-full bg-gradient-to-r ${style.gradient} hover:opacity-90 text-white shadow-lg hover:shadow-xl transition-all duration-300`}
                     >
                       Continue Learning
                     </Button>
                   </Link>
                 </CardContent>
               </Card>
-            )
+            );
           })}
         </div>
       </div>
@@ -342,7 +490,9 @@ export default function DashboardPage() {
                         <Badge className="text-xs bg-emerald-100 text-emerald-700 border-emerald-200">
                           Score: {activity.score}%
                         </Badge>
-                        <span className="text-xs text-slate-500">{activity.time}</span>
+                        <span className="text-xs text-slate-500">
+                          {activity.time}
+                        </span>
                       </div>
                     </>
                   )}
@@ -351,14 +501,22 @@ export default function DashboardPage() {
                       <p className="text-sm font-semibold text-slate-800">
                         Started {activity.chapter} in {activity.subject}
                       </p>
-                      <p className="text-xs text-slate-500 mt-1">{activity.time}</p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        {activity.time}
+                      </p>
                     </>
                   )}
                   {activity.type === "achievement" && (
                     <>
-                      <p className="text-sm font-semibold text-slate-800">{activity.title}</p>
-                      <p className="text-xs text-slate-600">{activity.description}</p>
-                      <p className="text-xs text-slate-500 mt-1">{activity.time}</p>
+                      <p className="text-sm font-semibold text-slate-800">
+                        {activity.title}
+                      </p>
+                      <p className="text-xs text-slate-600">
+                        {activity.description}
+                      </p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        {activity.time}
+                      </p>
                     </>
                   )}
                 </div>
@@ -384,9 +542,15 @@ export default function DashboardPage() {
                 key={index}
                 className={`flex items-center space-x-4 p-4 rounded-xl ${lesson.bgColor} hover:shadow-md transition-all duration-200 cursor-pointer border border-white/50`}
               >
-                <div className={`w-4 h-4 rounded-full ${lesson.color} shadow-sm`}></div>
+                <div
+                  className={`w-4 h-4 rounded-full ${lesson.color} shadow-sm`}
+                ></div>
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-semibold ${lesson.textColor} truncate`}>{lesson.chapter}</p>
+                  <p
+                    className={`text-sm font-semibold ${lesson.textColor} truncate`}
+                  >
+                    {lesson.chapter}
+                  </p>
                   <p className="text-xs text-slate-600">{lesson.subject}</p>
                   <div className="flex items-center gap-2 mt-2">
                     <Badge
@@ -394,13 +558,15 @@ export default function DashboardPage() {
                         lesson.difficulty === "Easy"
                           ? "bg-emerald-100 text-emerald-700 border-emerald-200"
                           : lesson.difficulty === "Medium"
-                            ? "bg-amber-100 text-amber-700 border-amber-200"
-                            : "bg-red-100 text-red-700 border-red-200"
+                          ? "bg-amber-100 text-amber-700 border-amber-200"
+                          : "bg-red-100 text-red-700 border-red-200"
                       }`}
                     >
                       {lesson.difficulty}
                     </Badge>
-                    <span className="text-xs text-slate-500">{lesson.estimatedTime}</span>
+                    <span className="text-xs text-slate-500">
+                      {lesson.estimatedTime}
+                    </span>
                   </div>
                 </div>
                 <ChevronRight className="h-5 w-5 text-slate-400" />
@@ -432,7 +598,9 @@ export default function DashboardPage() {
           <div className="space-y-6">
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-slate-700">Overall Progress</span>
+                <span className="text-sm font-medium text-slate-700">
+                  Overall Progress
+                </span>
                 <span className="text-lg font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                   {stats?.weeklyProgress || 0}%
                 </span>
@@ -447,32 +615,40 @@ export default function DashboardPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-8">
               <div className="text-center p-4 bg-white/50 rounded-xl border border-white/70">
                 <div className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                  4
+                  {stats?.totalSubjects || 0}
                 </div>
-                <div className="text-xs text-slate-600 font-medium">Subjects Active</div>
+                <div className="text-xs text-slate-600 font-medium">
+                  Subjects Active
+                </div>
               </div>
               <div className="text-center p-4 bg-white/50 rounded-xl border border-white/70">
                 <div className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
                   {stats?.completedChapters || 0}
                 </div>
-                <div className="text-xs text-slate-600 font-medium">Lessons Completed</div>
+                <div className="text-xs text-slate-600 font-medium">
+                  Lessons Completed
+                </div>
               </div>
               <div className="text-center p-4 bg-white/50 rounded-xl border border-white/70">
                 <div className="text-2xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
-                  3
+                  {stats?.upcomingTests || 0}
                 </div>
-                <div className="text-xs text-slate-600 font-medium">Tests Passed</div>
+                <div className="text-xs text-slate-600 font-medium">
+                  Tests Passed
+                </div>
               </div>
               <div className="text-center p-4 bg-white/50 rounded-xl border border-white/70">
                 <div className="text-2xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent">
-                  7
+                  {stats?.studyStreak || 0}
                 </div>
-                <div className="text-xs text-slate-600 font-medium">Day Streak</div>
+                <div className="text-xs text-slate-600 font-medium">
+                  Day Streak
+                </div>
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

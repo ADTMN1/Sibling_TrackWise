@@ -1,282 +1,237 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useParams, useRouter } from "next/navigation"
-import { useProgress } from "@/contexts/ProgressContext"
-import { useTimer } from "@/contexts/TimerContext"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ChevronLeft, ChevronRight, BookOpen, Play, Pause, Search, Clock, CheckCircle } from "lucide-react"
-import { Chatbot } from "@/components/child/Chatbot"
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useProgress } from "@/contexts/ProgressContext";
+import { useTimer } from "@/contexts/TimerContext";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  ChevronLeft,
+  ChevronRight,
+  BookOpen,
+  Play,
+  Pause,
+  Search,
+  Clock,
+  CheckCircle,
+} from "lucide-react";
+import { Chatbot } from "@/components/child/Chatbot";
 
-// Mock chapter content with search functionality
-const generateChapterContent = (page: number) => {
-  const contents = [
-    {
-      title: "Introduction to Fundamentals",
-      content:
-        "Welcome to this chapter! In this section, we'll explore fundamental concepts that will build the foundation for your understanding. These basic principles are essential for mastering more advanced topics later in the course.",
-    },
-    {
-      title: "Core Principles",
-      content:
-        "Let's dive deeper into the core principles. Understanding these basics is crucial for mastering advanced topics. Each principle builds upon the previous one, creating a solid foundation of knowledge.",
-    },
-    {
-      title: "Practical Applications",
-      content:
-        "Now we'll examine practical applications of what we've learned. These real-world examples will help solidify your knowledge and show you how these concepts are used in everyday situations.",
-    },
-    {
-      title: "Important Formulas",
-      content:
-        "Here are some important formulas and methods you should remember. Practice these regularly to improve your skills. Mathematical formulas are tools that help us solve complex problems efficiently.",
-    },
-    {
-      title: "Working Through Examples",
-      content:
-        "Let's work through some examples together. Follow along carefully and try to understand each step. Examples help bridge the gap between theory and practical application.",
-    },
-    {
-      title: "Advanced Techniques",
-      content:
-        "This section covers advanced techniques. Don't worry if it seems challenging at first - practice makes perfect! Advanced concepts require patience and consistent practice to master.",
-    },
-    {
-      title: "Problem-Solving Methods",
-      content:
-        "We'll now explore different approaches to problem-solving. Each method has its own advantages and is suitable for different types of problems. Learning multiple approaches gives you flexibility.",
-    },
-    {
-      title: "Interactive Exercises",
-      content:
-        "Time for some interactive exercises! Try to solve these on your own before checking the answers. Active participation in learning significantly improves retention and understanding.",
-    },
-    {
-      title: "Review and Consolidation",
-      content:
-        "Let's review what we've covered so far. Make sure you understand each concept before moving forward. Regular review helps transfer information from short-term to long-term memory.",
-    },
-    {
-      title: "Memory Techniques",
-      content:
-        "Here are some tips and tricks that will help you remember these concepts more easily. Memory techniques, or mnemonics, can make learning more efficient and enjoyable.",
-    },
-    {
-      title: "Advanced Applications",
-      content:
-        "We're making great progress! Let's continue with more advanced topics and applications. These build upon everything you've learned so far and prepare you for expert-level understanding.",
-    },
-    {
-      title: "Key Terminology",
-      content:
-        "This section introduces new vocabulary and terminology. Take time to understand each term as they form the language of this subject. Proper terminology is essential for clear communication.",
-    },
-    {
-      title: "Complex Problem Solving",
-      content:
-        "Let's practice with more complex examples. Don't hesitate to review previous sections if needed. Complex problems often require combining multiple concepts and techniques.",
-    },
-    {
-      title: "Integration of Concepts",
-      content:
-        "We're approaching the end of this chapter. Let's consolidate everything we've learned and see how all concepts work together to form a complete understanding.",
-    },
-    {
-      title: "Chapter Summary",
-      content:
-        "Excellent work! You've completed this chapter. This summary reviews all key points covered. You're now ready to take the chapter test to demonstrate your understanding.",
-    },
-    {
-      title: "Preparation for Assessment",
-      content:
-        "Before taking the chapter test, review all the key concepts. Make sure you understand the relationships between different topics covered in this chapter.",
-    },
-    {
-      title: "Final Review",
-      content:
-        "This is your final review before the assessment. Go through each major concept one more time. Confidence comes from thorough preparation and understanding.",
-    },
-    {
-      title: "Test Preparation Tips",
-      content:
-        "Here are some tips for taking the chapter test: read each question carefully, manage your time well, and trust in your preparation. You've learned a lot in this chapter!",
-    },
-    {
-      title: "Knowledge Check",
-      content:
-        "Before proceeding to the test, do a quick knowledge check. Can you explain the main concepts to yourself? Teaching concepts to yourself is a great way to verify understanding.",
-    },
-    {
-      title: "Ready for Assessment",
-      content:
-        "You're now ready for the chapter test! Remember, you need 80% or above to unlock the next chapter. Take your time, think carefully, and apply what you've learned. Good luck!",
-    },
-  ]
+async function fetchChapterContent(chapterId: string, page: number) {
+  try {
+    const res = await fetch(
+      `http://localhost:5000/api/chapterpages/${chapterId}/${page}`
+    );
 
-  return contents[page - 1] || { title: "Chapter Content", content: "Chapter content goes here..." }
+    if (!res.ok) throw new Error("Failed to fetch");
+
+    const data = await res.json();
+
+    return {
+      title: data.title || "Chapter Content",
+      content: data.content || "Chapter content goes here...",
+    };
+  } catch (error) {
+    console.error("Fetch error:", error);
+    return {
+      title: "Error",
+      content: "Unable to load content.",
+    };
+  }
 }
 
 export default function ChapterPage() {
-  const params = useParams()
-  const router = useRouter()
-  const subjectId = params.subjectId as string
-  const chapterId = params.chapterId as string
+  const params = useParams();
+  const router = useRouter();
+  const subjectId = params.subjectId as string;
+  const chapterId = params.chapterId as string;
 
-  const { getChapterProgress, updateChapterProgress } = useProgress()
-  const { startReadingTimer, pauseReadingTimer, isRunning } = useTimer()
+  const { getChapterProgress, updateChapterProgress } = useProgress();
+  const { startReadingTimer, pauseReadingTimer, isRunning } = useTimer();
 
-  const [currentPage, setCurrentPage] = useState(1)
-  const [showQuiz, setShowQuiz] = useState(false)
-  const [pageStartTime, setPageStartTime] = useState(Date.now())
-  const [canProceed, setCanProceed] = useState(false)
-  const [timeRemaining, setTimeRemaining] = useState(5)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [searchResults, setSearchResults] = useState<{ page: number; title: string; content: string }[]>([])
-  const [showSearch, setShowSearch] = useState(false)
-  const [completedQuizzes, setCompletedQuizzes] = useState<{ [key: number]: boolean }>({})
+  const [currentContent, setCurrentContent] = useState({
+    title: "Loading...",
+    content: "Please wait while the content loads.",
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [pageStartTime, setPageStartTime] = useState(Date.now());
+  const [canProceed, setCanProceed] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState(5);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState<
+    { page: number; title: string; content: string }[]
+  >([]);
+  const [showSearch, setShowSearch] = useState(false);
+  const [completedQuizzes, setCompletedQuizzes] = useState<{
+    [key: number]: boolean;
+  }>({});
 
-  const chapterProgress = getChapterProgress(subjectId, chapterId)
-  const totalPages = chapterProgress.totalPages
-  const isRevisit = chapterProgress.completed
+  const chapterProgress = getChapterProgress(subjectId, chapterId);
+  const totalPages = chapterProgress.totalPages;
+  const isRevisit = chapterProgress.completed;
 
   const shouldShowQuiz =
-    currentPage % 5 === 0 && currentPage < totalPages && !completedQuizzes[currentPage] && !isRevisit
+    currentPage % 5 === 0 &&
+    currentPage < totalPages &&
+    !completedQuizzes[currentPage] &&
+    !isRevisit;
 
   // Initialize chapter data on mount
   useEffect(() => {
-    const progress = getChapterProgress(subjectId, chapterId)
-    setCurrentPage(progress.currentPage)
-    setCompletedQuizzes(progress.completedQuizzes || {})
-  }, [subjectId, chapterId, getChapterProgress])
+    const progress = getChapterProgress(subjectId, chapterId);
+    setCurrentPage(progress.currentPage);
+    setCompletedQuizzes(progress.completedQuizzes || {});
+  }, [subjectId, chapterId, getChapterProgress]);
+
+  // Fetch content when page changes
+  useEffect(() => {
+    const loadContent = async () => {
+      const content = await fetchChapterContent(chapterId, currentPage);
+      setCurrentContent(content);
+    };
+    loadContent();
+  }, [chapterId, currentPage]);
 
   // Handle timer based on quiz state
   useEffect(() => {
     if (!showQuiz && !shouldShowQuiz) {
-      startReadingTimer()
+      startReadingTimer();
     } else {
-      pauseReadingTimer()
+      pauseReadingTimer();
     }
 
     return () => {
-      pauseReadingTimer()
-    }
-  }, [showQuiz, shouldShowQuiz, startReadingTimer, pauseReadingTimer])
+      pauseReadingTimer();
+    };
+  }, [showQuiz, shouldShowQuiz, startReadingTimer, pauseReadingTimer]);
 
   // Handle minimum read timer for each page
   useEffect(() => {
-    setPageStartTime(Date.now())
-    setCanProceed(isRevisit)
-    setTimeRemaining(5)
+    setPageStartTime(Date.now());
+    setCanProceed(isRevisit);
+    setTimeRemaining(5);
 
     if (!isRevisit) {
-      const startTime = Date.now()
+      const startTime = Date.now();
       const timer = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - startTime) / 1000)
-        const remaining = Math.max(0, 5 - elapsed)
-        setTimeRemaining(remaining)
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const remaining = Math.max(0, 5 - elapsed);
+        setTimeRemaining(remaining);
 
         if (remaining === 0) {
-          setCanProceed(true)
-          clearInterval(timer)
+          setCanProceed(true);
+          clearInterval(timer);
         }
-      }, 1000)
+      }, 1000);
 
-      return () => clearInterval(timer)
+      return () => clearInterval(timer);
     }
-  }, [currentPage, isRevisit])
+  }, [currentPage, isRevisit]);
 
   // Update progress only when page advances (not on revisit)
   useEffect(() => {
-    const currentProgress = getChapterProgress(subjectId, chapterId)
+    const currentProgress = getChapterProgress(subjectId, chapterId);
     if (!isRevisit && currentPage > currentProgress.currentPage) {
       updateChapterProgress(subjectId, chapterId, {
         currentPage: currentPage,
         timeSpent: currentProgress.timeSpent + 1,
-      })
+      });
     }
-  }, [currentPage, isRevisit, subjectId, chapterId, updateChapterProgress, getChapterProgress])
+  }, [
+    currentPage,
+    isRevisit,
+    subjectId,
+    chapterId,
+    updateChapterProgress,
+    getChapterProgress,
+  ]);
 
   // Search functionality
-  const handleSearch = (term: string) => {
-    setSearchTerm(term)
+  const handleSearch = async (term: string) => {
+    setSearchTerm(term);
     if (term.length > 2) {
-      const results = []
+      const results: { page: number; title: string; content: string }[] = [];
       for (let i = 1; i <= totalPages; i++) {
-        const pageContent = generateChapterContent(i)
+        const pageContent = await fetchChapterContent(chapterId, i);
         if (
           pageContent.title.toLowerCase().includes(term.toLowerCase()) ||
           pageContent.content.toLowerCase().includes(term.toLowerCase())
         ) {
-          results.push({ page: i, ...pageContent })
+          results.push({ page: i, ...pageContent });
         }
       }
-      setSearchResults(results)
+      setSearchResults(results);
     } else {
-      setSearchResults([])
+      setSearchResults([]);
     }
-  }
+  };
 
   const handleNextPage = () => {
     if (!canProceed && !isRevisit) {
-      return // Cannot proceed until minimum time is met
+      return; // Cannot proceed until minimum time is met
     }
 
     // Check if we should show quiz every 5 pages (but not on the last page)
-    if (currentPage % 5 === 0 && currentPage < totalPages && !completedQuizzes[currentPage] && !isRevisit) {
-      setShowQuiz(true)
-      return
+    if (
+      currentPage % 5 === 0 &&
+      currentPage < totalPages &&
+      !completedQuizzes[currentPage] &&
+      !isRevisit
+    ) {
+      setShowQuiz(true);
+      return;
     }
 
     if (currentPage < totalPages) {
-      setCurrentPage((prev) => prev + 1)
+      setCurrentPage((prev) => prev + 1);
     } else if (currentPage === totalPages) {
       // After completing all pages, go directly to test
-      handleChapterComplete()
+      handleChapterComplete();
     }
-  }
+  };
 
   const handlePrevPage = () => {
     if (currentPage > 1) {
-      setCurrentPage((prev) => prev - 1)
+      setCurrentPage((prev) => prev - 1);
     }
-  }
+  };
 
   const handleQuizComplete = (score: number) => {
-    const newCompletedQuizzes = { ...completedQuizzes, [currentPage]: true }
-    setCompletedQuizzes(newCompletedQuizzes)
+    const newCompletedQuizzes = { ...completedQuizzes, [currentPage]: true };
+    setCompletedQuizzes(newCompletedQuizzes);
 
     // Only update score if not revisiting
     if (!isRevisit) {
       updateChapterProgress(subjectId, chapterId, {
         completedQuizzes: newCompletedQuizzes,
         quizScores: { ...chapterProgress.quizScores, [currentPage]: score },
-      })
+      });
     }
-    setShowQuiz(false)
+    setShowQuiz(false);
 
     // Continue to next page after quiz
     if (currentPage < totalPages) {
-      setCurrentPage((prev) => prev + 1)
+      setCurrentPage((prev) => prev + 1);
     }
-  }
+  };
 
   const handleChapterComplete = () => {
     if (!isRevisit) {
       updateChapterProgress(subjectId, chapterId, {
         completed: true,
         currentPage: totalPages,
-      })
+      });
     }
-    router.push(`/child/subjects/${subjectId}/chapters/${chapterId}/test`)
-  }
+    router.push(`/child/subjects/${subjectId}/chapters/${chapterId}/test`);
+  };
 
-  const progressPercent = (currentPage / totalPages) * 100
-  const currentContent = generateChapterContent(currentPage)
+  const progressPercent = (currentPage / totalPages) * 100;
 
   if (showQuiz || shouldShowQuiz) {
     return (
@@ -286,7 +241,7 @@ export default function ChapterPage() {
         pageNumber={currentPage}
         chapterId={chapterId}
       />
-    )
+    );
   }
 
   return (
@@ -305,7 +260,9 @@ export default function ChapterPage() {
                 Back to Chapters
               </Button>
               <div>
-                <h1 className="text-xl font-semibold">Chapter {chapterId.split("-")[1]}</h1>
+                <h1 className="text-xl font-semibold">
+                  Chapter {chapterId.split("-")[1]}
+                </h1>
                 <p className="text-sm text-gray-600">
                   Page {currentPage} of {totalPages}
                 </p>
@@ -321,8 +278,16 @@ export default function ChapterPage() {
                 <Search className="w-4 h-4" />
                 Search
               </Button>
-              <Button onClick={isRunning ? pauseReadingTimer : startReadingTimer} variant="outline" size="sm">
-                {isRunning ? <Pause className="w-4 h-4 mr-2" /> : <Play className="w-4 h-4 mr-2" />}
+              <Button
+                onClick={isRunning ? pauseReadingTimer : startReadingTimer}
+                variant="outline"
+                size="sm"
+              >
+                {isRunning ? (
+                  <Pause className="w-4 h-4 mr-2" />
+                ) : (
+                  <Play className="w-4 h-4 mr-2" />
+                )}
                 {isRunning ? "Pause" : "Resume"}
               </Button>
               <Badge variant="secondary">
@@ -347,17 +312,19 @@ export default function ChapterPage() {
                     <button
                       key={result.page}
                       onClick={() => {
-                        setCurrentPage(result.page)
-                        setShowSearch(false)
-                        setSearchTerm("")
-                        setSearchResults([])
+                        setCurrentPage(result.page);
+                        setShowSearch(false);
+                        setSearchTerm("");
+                        setSearchResults([]);
                       }}
                       className="w-full text-left p-3 hover:bg-gray-50 border-b last:border-b-0"
                     >
                       <div className="font-medium text-sm">
                         Page {result.page}: {result.title}
                       </div>
-                      <div className="text-xs text-gray-600 truncate">{result.content}</div>
+                      <div className="text-xs text-gray-600 truncate">
+                        {result.content}
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -403,30 +370,37 @@ export default function ChapterPage() {
               <div className="bg-blue-50 border-l-4 border-blue-500 p-4 my-6">
                 <h4 className="font-semibold text-blue-800 mb-2">Key Point</h4>
                 <p className="text-blue-700">
-                  Remember to take notes and practice the concepts as you learn them. This will help reinforce your
-                  understanding and improve retention.
+                  Remember to take notes and practice the concepts as you learn
+                  them. This will help reinforce your understanding and improve
+                  retention.
                 </p>
               </div>
 
               {currentPage > 5 && (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-green-800 mb-2">Practice Exercise</h4>
+                  <h4 className="font-semibold text-green-800 mb-2">
+                    Practice Exercise
+                  </h4>
                   <p className="text-green-700">
-                    Try to apply what you've learned in this section. Can you think of real-world examples where these
-                    concepts might be useful?
+                    Try to apply what you've learned in this section. Can you
+                    think of real-world examples where these concepts might be
+                    useful?
                   </p>
                 </div>
               )}
 
               {/* Quiz notification */}
-              {currentPage % 5 === 4 && currentPage < totalPages - 1 && !completedQuizzes[currentPage + 1] && (
-                <Alert className="border-yellow-200 bg-yellow-50">
-                  <AlertDescription className="text-yellow-800">
-                    <strong>Quiz Coming Up!</strong> After the next page, you'll have a quiz to test your understanding
-                    of the last 5 pages.
-                  </AlertDescription>
-                </Alert>
-              )}
+              {currentPage % 5 === 4 &&
+                currentPage < totalPages - 1 &&
+                !completedQuizzes[currentPage + 1] && (
+                  <Alert className="border-yellow-200 bg-yellow-50">
+                    <AlertDescription className="text-yellow-800">
+                      <strong>Quiz Coming Up!</strong> After the next page,
+                      you'll have a quiz to test your understanding of the last
+                      5 pages.
+                    </AlertDescription>
+                  </Alert>
+                )}
 
               {/* Minimum read timer warning */}
               {!canProceed && !isRevisit && (
@@ -434,10 +408,12 @@ export default function ChapterPage() {
                   <div className="flex items-center gap-2">
                     <Clock className="w-5 h-5 text-yellow-600" />
                     <div>
-                      <h4 className="font-semibold text-yellow-800">Please read carefully</h4>
+                      <h4 className="font-semibold text-yellow-800">
+                        Please read carefully
+                      </h4>
                       <p className="text-yellow-700 text-sm">
-                        You can proceed to the next page in {timeRemaining} seconds. Take your time to understand the
-                        content.
+                        You can proceed to the next page in {timeRemaining}{" "}
+                        seconds. Take your time to understand the content.
                       </p>
                     </div>
                   </div>
@@ -463,9 +439,14 @@ export default function ChapterPage() {
             <div>
               Page {currentPage} of {totalPages}
             </div>
-            {currentPage % 5 === 0 && currentPage < totalPages && !completedQuizzes[currentPage] && !isRevisit && (
-              <div className="text-blue-600 font-medium">Quiz required before continuing</div>
-            )}
+            {currentPage % 5 === 0 &&
+              currentPage < totalPages &&
+              !completedQuizzes[currentPage] &&
+              !isRevisit && (
+                <div className="text-blue-600 font-medium">
+                  Quiz required before continuing
+                </div>
+              )}
           </div>
 
           {currentPage < totalPages ? (
@@ -473,7 +454,10 @@ export default function ChapterPage() {
               onClick={handleNextPage}
               className="flex items-center gap-2"
               disabled={
-                (!canProceed && !isRevisit) || (currentPage % 5 === 0 && !completedQuizzes[currentPage] && !isRevisit)
+                (!canProceed && !isRevisit) ||
+                (currentPage % 5 === 0 &&
+                  !completedQuizzes[currentPage] &&
+                  !isRevisit)
               }
             >
               Next
@@ -485,7 +469,10 @@ export default function ChapterPage() {
               )}
             </Button>
           ) : (
-            <Button onClick={handleChapterComplete} className="flex items-center gap-2 bg-green-600 hover:bg-green-700">
+            <Button
+              onClick={handleChapterComplete}
+              className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+            >
               {isRevisit ? "Take Test Again" : "Take Chapter Test"}
               <ChevronRight className="w-4 h-4" />
             </Button>
@@ -496,7 +483,7 @@ export default function ChapterPage() {
       {/* Chatbot - only show during reading, not in quizzes */}
       <Chatbot />
     </div>
-  )
+  );
 }
 
 // Quiz Component with updated logic
@@ -506,18 +493,20 @@ function QuizComponent({
   pageNumber,
   chapterId,
 }: {
-  onComplete: (score: number) => void
-  isRevisit: boolean
-  pageNumber: number
-  chapterId: string
+  onComplete: (score: number) => void;
+  isRevisit: boolean;
+  pageNumber: number;
+  chapterId: string;
 }) {
-  const [currentQuestion, setCurrentQuestion] = useState(0)
-  const [selectedAnswers, setSelectedAnswers] = useState<number[]>([])
-  const [showResults, setShowResults] = useState(false)
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
+  const [showResults, setShowResults] = useState(false);
 
   const questions = [
     {
-      question: `What is the main concept covered in pages ${pageNumber - 4} to ${pageNumber}?`,
+      question: `What is the main concept covered in pages ${
+        pageNumber - 4
+      } to ${pageNumber}?`,
       options: [
         "Basic fundamentals and core principles",
         "Advanced mathematical formulas",
@@ -529,7 +518,8 @@ function QuizComponent({
         "These pages focused on building fundamental understanding of core concepts as the foundation for advanced learning.",
     },
     {
-      question: "Which approach is most effective for the problem-solving methods discussed?",
+      question:
+        "Which approach is most effective for the problem-solving methods discussed?",
       options: [
         "Random trial and error",
         "Systematic step-by-step method",
@@ -537,10 +527,12 @@ function QuizComponent({
         "Copying from external sources",
       ],
       correct: 1,
-      explanation: "A systematic step-by-step approach ensures thorough understanding and consistent results.",
+      explanation:
+        "A systematic step-by-step approach ensures thorough understanding and consistent results.",
     },
     {
-      question: "What should you do when encountering the difficult concepts from this section?",
+      question:
+        "What should you do when encountering the difficult concepts from this section?",
       options: [
         "Skip them entirely",
         "Review prerequisites and practice",
@@ -551,50 +543,65 @@ function QuizComponent({
       explanation:
         "Reviewing prerequisites and practicing helps build the foundation needed to understand difficult concepts.",
     },
-  ]
+  ];
 
   const handleAnswerSelect = (answerIndex: number) => {
-    const newAnswers = [...selectedAnswers]
-    newAnswers[currentQuestion] = answerIndex
-    setSelectedAnswers(newAnswers)
-  }
+    const newAnswers = [...selectedAnswers];
+    newAnswers[currentQuestion] = answerIndex;
+    setSelectedAnswers(newAnswers);
+  };
 
   const handleNext = () => {
     if (currentQuestion < questions.length - 1) {
-      setCurrentQuestion((prev) => prev + 1)
+      setCurrentQuestion((prev) => prev + 1);
     } else {
-      setShowResults(true)
+      setShowResults(true);
     }
-  }
+  };
 
   const calculateScore = () => {
-    let correct = 0
+    let correct = 0;
     questions.forEach((question, index) => {
       if (selectedAnswers[index] === question.correct) {
-        correct++
+        correct++;
       }
-    })
-    return Math.round((correct / questions.length) * 100)
-  }
+    });
+    return Math.round((correct / questions.length) * 100);
+  };
 
   if (showResults) {
-    const score = calculateScore()
+    const score = calculateScore();
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
         <Card className="w-full max-w-2xl">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Quiz Results - Page {pageNumber}</CardTitle>
-            {isRevisit && <Badge variant="secondary">Practice Mode - Score Not Recorded</Badge>}
+            <CardTitle className="text-2xl">
+              Quiz Results - Page {pageNumber}
+            </CardTitle>
+            {isRevisit && (
+              <Badge variant="secondary">
+                Practice Mode - Score Not Recorded
+              </Badge>
+            )}
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="text-center">
-              <div className="text-4xl font-bold text-blue-600 mb-2">{score}%</div>
+              <div className="text-4xl font-bold text-blue-600 mb-2">
+                {score}%
+              </div>
               <p className="text-gray-600">
-                You got {selectedAnswers.filter((answer, index) => answer === questions[index].correct).length} out of{" "}
-                {questions.length} questions correct
+                You got{" "}
+                {
+                  selectedAnswers.filter(
+                    (answer, index) => answer === questions[index].correct
+                  ).length
+                }{" "}
+                out of {questions.length} questions correct
               </p>
               {isRevisit && (
-                <p className="text-sm text-yellow-600 mt-2">This is practice mode. Your score will not be recorded.</p>
+                <p className="text-sm text-yellow-600 mt-2">
+                  This is practice mode. Your score will not be recorded.
+                </p>
               )}
             </div>
 
@@ -610,8 +617,8 @@ function QuizComponent({
                           optionIndex === question.correct
                             ? "bg-green-100 text-green-800 border border-green-300"
                             : selectedAnswers[index] === optionIndex
-                              ? "bg-red-100 text-red-800 border border-red-300"
-                              : "bg-gray-50"
+                            ? "bg-red-100 text-red-800 border border-red-300"
+                            : "bg-gray-50"
                         }`}
                       >
                         {option}
@@ -635,7 +642,7 @@ function QuizComponent({
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   return (
@@ -651,23 +658,33 @@ function QuizComponent({
               {isRevisit && <Badge variant="outline">Practice Mode</Badge>}
             </div>
           </div>
-          <Progress value={((currentQuestion + 1) / questions.length) * 100} className="h-2" />
+          <Progress
+            value={((currentQuestion + 1) / questions.length) * 100}
+            className="h-2"
+          />
         </CardHeader>
         <CardContent className="space-y-6">
           <Alert className="border-blue-200 bg-blue-50">
             <AlertDescription className="text-blue-800">
-              This quiz covers the content from pages {pageNumber - 4} to {pageNumber}. Take your time and think
-              carefully about each answer.
+              This quiz covers the content from pages {pageNumber - 4} to{" "}
+              {pageNumber}. Take your time and think carefully about each
+              answer.
             </AlertDescription>
           </Alert>
 
           <div>
-            <h3 className="text-lg font-medium mb-4">{questions[currentQuestion].question}</h3>
+            <h3 className="text-lg font-medium mb-4">
+              {questions[currentQuestion].question}
+            </h3>
             <div className="space-y-3">
               {questions[currentQuestion].options.map((option, index) => (
                 <Button
                   key={index}
-                  variant={selectedAnswers[currentQuestion] === index ? "default" : "outline"}
+                  variant={
+                    selectedAnswers[currentQuestion] === index
+                      ? "default"
+                      : "outline"
+                  }
                   className="w-full text-left justify-start h-auto p-4"
                   onClick={() => handleAnswerSelect(index)}
                 >
@@ -685,12 +702,17 @@ function QuizComponent({
             >
               Previous
             </Button>
-            <Button onClick={handleNext} disabled={selectedAnswers[currentQuestion] === undefined}>
-              {currentQuestion === questions.length - 1 ? "Finish Quiz" : "Next"}
+            <Button
+              onClick={handleNext}
+              disabled={selectedAnswers[currentQuestion] === undefined}
+            >
+              {currentQuestion === questions.length - 1
+                ? "Finish Quiz"
+                : "Next"}
             </Button>
           </div>
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

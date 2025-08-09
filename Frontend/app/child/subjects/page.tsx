@@ -1,13 +1,19 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { useProgress } from "@/contexts/ProgressContext"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { Input } from "@/components/ui/input"
+import { useState, useEffect, JSX } from "react";
+import { useRouter } from "next/navigation";
+import { useProgress } from "@/contexts/ProgressContext";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
 import {
   BookOpen,
   Search,
@@ -20,96 +26,186 @@ import {
   Globe,
   Star,
   Award,
-} from "lucide-react"
+} from "lucide-react";
 
-const subjects = [
-  {
-    id: "math",
-    name: "Mathematics",
-    description: "Algebra, Geometry, Calculus and more",
-    icon: Calculator,
-    color: "bg-indigo-500",
-    gradient: "from-indigo-500 to-purple-600",
-    chapters: 12,
-    difficulty: "Medium",
-    estimatedTime: "8 weeks",
-    topics: ["Algebra", "Geometry", "Statistics", "Calculus"],
-  },
-  {
-    id: "science",
-    name: "Science",
-    description: "Physics, Chemistry, Biology fundamentals",
-    icon: Atom,
-    color: "bg-emerald-500",
-    gradient: "from-emerald-500 to-teal-600",
-    chapters: 15,
-    difficulty: "Hard",
-    estimatedTime: "10 weeks",
-    topics: ["Physics", "Chemistry", "Biology", "Earth Science"],
-  },
-  {
-    id: "english",
-    name: "English",
-    description: "Grammar, Literature, Writing skills",
-    icon: BookText,
-    color: "bg-purple-500",
-    gradient: "from-purple-500 to-pink-600",
-    chapters: 10,
-    difficulty: "Easy",
-    estimatedTime: "6 weeks",
-    topics: ["Grammar", "Literature", "Writing", "Reading"],
-  },
-  {
-    id: "history",
-    name: "History",
-    description: "World history, civilizations, events",
-    icon: Globe,
-    color: "bg-amber-500",
-    gradient: "from-amber-500 to-orange-600",
-    chapters: 8,
-    difficulty: "Medium",
-    estimatedTime: "7 weeks",
-    topics: ["Ancient History", "Modern History", "Geography", "Culture"],
-  },
-]
+import { FaBook, FaFlask, FaCalculator, FaCode, FaGlobe } from "react-icons/fa";
+
+const subjectIcons: Record<string, JSX.Element> = {
+  Mathematics: <FaCalculator />,
+  Science: <FaFlask />,
+  English: <FaBook />,
+  Geography: <FaGlobe />,
+  Programming: <FaCode />,
+};
+
+import { LucideIcon } from "lucide-react";
+interface Subject {
+  id: string;
+  name: string;
+  description: string;
+  icon: LucideIcon;
+  color: string;
+  gradient: string;
+  chapters: number;
+  difficulty: string;
+  estimatedTime: string;
+  topics: string[];
+}
+
+//   {
+//     id: "math",
+//     name: "Mathematics",
+//     description: "Algebra, Geometry, Calculus and more",
+//     icon: Calculator,
+//     color: "bg-indigo-500",
+//     gradient: "from-indigo-500 to-purple-600",
+//     chapters: 12,
+//     difficulty: "Medium",
+//     estimatedTime: "8 weeks",
+//     topics: ["Algebra", "Geometry", "Statistics", "Calculus"],
+//   },
+//   {
+//     id: "science",
+//     name: "Science",
+//     description: "Physics, Chemistry, Biology fundamentals",
+//     icon: Atom,
+//     color: "bg-emerald-500",
+//     gradient: "from-emerald-500 to-teal-600",
+//     chapters: 15,
+//     difficulty: "Hard",
+//     estimatedTime: "10 weeks",
+//     topics: ["Physics", "Chemistry", "Biology", "Earth Science"],
+//   },
+//   {
+//     id: "english",
+//     name: "English",
+//     description: "Grammar, Literature, Writing skills",
+//     icon: BookText,
+//     color: "bg-purple-500",
+//     gradient: "from-purple-500 to-pink-600",
+//     chapters: 10,
+//     difficulty: "Easy",
+//     estimatedTime: "6 weeks",
+//     topics: ["Grammar", "Literature", "Writing", "Reading"],
+//   },
+//   {
+//     id: "history",
+//     name: "History",
+//     description: "World history, civilizations, events",
+//     icon: Globe,
+//     color: "bg-amber-500",
+//     gradient: "from-amber-500 to-orange-600",
+//     chapters: 8,
+//     difficulty: "Medium",
+//     estimatedTime: "7 weeks",
+//     topics: ["Ancient History", "Modern History", "Geography", "Culture"],
+//   },
+// ];
 
 export default function SubjectsPage() {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null)
-  const router = useRouter()
-  const { getSubjectProgress } = useProgress()
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(
+    null
+  );
+  const router = useRouter();
+  const { getSubjectProgress } = useProgress();
+
+  useEffect(() => {
+    fetch("http://localhost:5000/api/subjects/")
+      .then((res) => res.json())
+      .then((data) => {
+        const subjectMap = {
+          Mathematics: {
+            gradient: "from-indigo-500 to-purple-600",
+            icon: Calculator,
+          },
+          Science: {
+            gradient: "from-emerald-500 to-teal-600",
+            icon: Atom,
+          },
+          English: {
+            gradient: "from-purple-500 to-pink-600",
+            icon: BookText,
+          },
+          History: {
+            gradient: "from-amber-500 to-orange-600",
+            icon: Globe,
+          },
+          Programming: {
+            gradient: "from-blue-500 to-cyan-500",
+            icon: FaCode,
+          },
+          Geography: {
+            gradient: "from-green-500 to-blue-600",
+            icon: FaGlobe,
+          },
+        };
+
+        const enrichedSubjects = data.map((subject: any) => {
+          const mapping =
+            subjectMap[subject.name as keyof typeof subjectMap] || {};
+          return {
+            ...subject,
+            id: subject._id,
+            gradient: mapping.gradient,
+            icon: mapping.icon || FaBook,
+            chapters: Array.isArray(subject.chapters)
+              ? subject.chapters.length
+              : subject.chapters || 0,
+            difficulty: subject.difficulty || "Medium",
+            estimatedTime: subject.estimatedTime || "6 weeks",
+            topics:
+              Array.isArray(subject.topics) && subject.topics.length > 0
+                ? subject.topics
+                : ["General"],
+          };
+        });
+
+        setSubjects(enrichedSubjects);
+      })
+      .catch((err) => console.error(err));
+  }, []);
 
   const filteredSubjects = subjects.filter((subject) => {
     const matchesSearch =
       subject.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       subject.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      subject.topics.some((topic) => topic.toLowerCase().includes(searchQuery.toLowerCase()))
+      subject.topics.some((topic) =>
+        topic.toLowerCase().includes(searchQuery.toLowerCase())
+      );
 
-    const matchesDifficulty = !selectedDifficulty || subject.difficulty === selectedDifficulty
+    const matchesDifficulty =
+      !selectedDifficulty || subject.difficulty === selectedDifficulty;
 
-    return matchesSearch && matchesDifficulty
-  })
+    return matchesSearch && matchesDifficulty;
+  });
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case "Easy":
-        return "bg-emerald-100 text-emerald-700 border-emerald-200"
+        return "bg-emerald-100 text-emerald-700 border-emerald-200";
       case "Medium":
-        return "bg-amber-100 text-amber-700 border-amber-200"
+        return "bg-amber-100 text-amber-700 border-amber-200";
       case "Hard":
-        return "bg-red-100 text-red-700 border-red-200"
+        return "bg-red-100 text-red-700 border-red-200";
       default:
-        return "bg-slate-100 text-slate-700 border-slate-200"
+        return "bg-slate-100 text-slate-700 border-slate-200";
     }
-  }
+  };
 
   return (
     <div className="p-6 space-y-6 content-area">
       {/* Header */}
       <div className="space-y-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800 gradient-text">Subjects</h1>
-          <p className="text-slate-600 mt-2">Choose a subject to start your learning journey</p>
+          <h1 className="text-3xl font-bold text-slate-800 gradient-text">
+            Subjects
+          </h1>
+          <p className="text-slate-600 mt-2">
+            Choose a subject to start your learning journey
+          </p>
         </div>
 
         {/* Search and Filters */}
@@ -127,10 +223,20 @@ export default function SubjectsPage() {
             {["Easy", "Medium", "Hard"].map((difficulty) => (
               <Button
                 key={difficulty}
-                variant={selectedDifficulty === difficulty ? "default" : "outline"}
+                variant={
+                  selectedDifficulty === difficulty ? "default" : "outline"
+                }
                 size="sm"
-                onClick={() => setSelectedDifficulty(selectedDifficulty === difficulty ? null : difficulty)}
-                className={selectedDifficulty === difficulty ? "btn-gradient text-white" : ""}
+                onClick={() =>
+                  setSelectedDifficulty(
+                    selectedDifficulty === difficulty ? null : difficulty
+                  )
+                }
+                className={
+                  selectedDifficulty === difficulty
+                    ? "btn-gradient text-white"
+                    : ""
+                }
               >
                 {difficulty}
               </Button>
@@ -142,9 +248,13 @@ export default function SubjectsPage() {
       {/* Subjects Grid */}
       <div className="grid gap-6 md:grid-cols-2">
         {filteredSubjects.map((subject) => {
-          const progress = getSubjectProgress(subject.id)
+          const progress = getSubjectProgress(subject.id);
           const progressPercentage =
-            subject.chapters > 0 ? Math.round((progress.completedChapters / subject.chapters) * 100) : 0
+            subject.chapters > 0
+              ? Math.round(
+                  (progress.completedChapters / subject.chapters) * 100
+                )
+              : 0;
 
           return (
             <Card
@@ -155,12 +265,19 @@ export default function SubjectsPage() {
               <CardHeader className="pb-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className={`p-3 rounded-xl bg-gradient-to-br ${subject.gradient}`}>
+                    <div
+                      className={`p-3 rounded-xl bg-gradient-to-br ${subject.gradient}`}
+                    >
                       <subject.icon className="h-6 w-6 text-white" />
                     </div>
+
                     <div>
-                      <CardTitle className="text-xl text-slate-800">{subject.name}</CardTitle>
-                      <CardDescription className="text-slate-600 mt-1">{subject.description}</CardDescription>
+                      <CardTitle className="text-xl text-slate-800">
+                        {subject.name}
+                      </CardTitle>
+                      <CardDescription className="text-slate-600 mt-1">
+                        {subject.description}
+                      </CardDescription>
                     </div>
                   </div>
                   <ChevronRight className="h-5 w-5 text-slate-400" />
@@ -171,15 +288,22 @@ export default function SubjectsPage() {
                 {/* Progress */}
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-slate-700">Progress</span>
-                    <span className="text-sm font-semibold text-indigo-600">{progressPercentage}%</span>
+                    <span className="text-sm font-medium text-slate-700">
+                      Progress
+                    </span>
+                    <span className="text-sm font-semibold text-indigo-600">
+                      {progressPercentage}%
+                    </span>
                   </div>
                   <Progress value={progressPercentage} className="h-2" />
                   <div className="flex justify-between text-xs text-slate-500">
                     <span>
-                      {progress.completedChapters} of {subject.chapters} chapters
+                      {progress.completedChapters} of {subject.chapters}{" "}
+                      chapters
                     </span>
-                    <span>{subject.chapters - progress.completedChapters} remaining</span>
+                    <span>
+                      {subject.chapters - progress.completedChapters} remaining
+                    </span>
                   </div>
                 </div>
 
@@ -189,30 +313,46 @@ export default function SubjectsPage() {
                     <div className="flex items-center justify-center mb-1">
                       <BookOpen className="h-4 w-4 text-slate-500" />
                     </div>
-                    <div className="text-sm font-semibold text-slate-800">{subject.chapters}</div>
+                    <div className="text-sm font-semibold text-slate-800">
+                      {subject.chapters}
+                    </div>
                     <div className="text-xs text-slate-500">Chapters</div>
                   </div>
                   <div className="text-center">
                     <div className="flex items-center justify-center mb-1">
                       <Clock className="h-4 w-4 text-slate-500" />
                     </div>
-                    <div className="text-sm font-semibold text-slate-800">{subject.estimatedTime}</div>
+                    <div className="text-sm font-semibold text-slate-800">
+                      {subject.estimatedTime}
+                    </div>
                     <div className="text-xs text-slate-500">Duration</div>
                   </div>
                   <div className="text-center">
                     <div className="flex items-center justify-center mb-1">
                       <Target className="h-4 w-4 text-slate-500" />
                     </div>
-                    <Badge className={`text-xs ${getDifficultyColor(subject.difficulty)}`}>{subject.difficulty}</Badge>
+                    <Badge
+                      className={`text-xs ${getDifficultyColor(
+                        subject.difficulty
+                      )}`}
+                    >
+                      {subject.difficulty}
+                    </Badge>
                   </div>
                 </div>
 
                 {/* Topics */}
                 <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-slate-700">Key Topics</h4>
+                  <h4 className="text-sm font-medium text-slate-700">
+                    Key Topics
+                  </h4>
                   <div className="flex flex-wrap gap-2">
-                    {subject.topics.map((topic, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs bg-slate-100 text-slate-600">
+                    {subject.topics?.map((topic, index) => (
+                      <Badge
+                        key={index}
+                        variant="secondary"
+                        className="text-xs bg-slate-100 text-slate-600"
+                      >
                         {topic}
                       </Badge>
                     ))}
@@ -223,16 +363,18 @@ export default function SubjectsPage() {
                 <Button
                   className="w-full btn-gradient text-white mt-4"
                   onClick={(e) => {
-                    e.stopPropagation()
-                    router.push(`/child/subjects/${subject.id}`)
+                    e.stopPropagation();
+                    router.push(`/child/subjects/${subject.id}`);
                   }}
                 >
-                  {progressPercentage > 0 ? "Continue Learning" : "Start Learning"}
+                  {progressPercentage > 0
+                    ? "Continue Learning"
+                    : "Start Learning"}
                   <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
               </CardContent>
             </Card>
-          )
+          );
         })}
       </div>
 
@@ -242,13 +384,17 @@ export default function SubjectsPage() {
           <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Search className="h-8 w-8 text-slate-400" />
           </div>
-          <h3 className="text-lg font-semibold text-slate-800 mb-2">No subjects found</h3>
-          <p className="text-slate-600 mb-4">Try adjusting your search terms or difficulty filters</p>
+          <h3 className="text-lg font-semibold text-slate-800 mb-2">
+            No subjects found
+          </h3>
+          <p className="text-slate-600 mb-4">
+            Try adjusting your search terms or difficulty filters
+          </p>
           <Button
             variant="outline"
             onClick={() => {
-              setSearchQuery("")
-              setSelectedDifficulty(null)
+              setSearchQuery("");
+              setSelectedDifficulty(null);
             }}
           >
             Clear Filters
@@ -272,7 +418,9 @@ export default function SubjectsPage() {
               </div>
               <div>
                 <h4 className="font-medium text-slate-800">Set a Schedule</h4>
-                <p className="text-sm text-slate-600">Study consistently for better retention</p>
+                <p className="text-sm text-slate-600">
+                  Study consistently for better retention
+                </p>
               </div>
             </div>
             <div className="flex items-start space-x-3">
@@ -281,7 +429,9 @@ export default function SubjectsPage() {
               </div>
               <div>
                 <h4 className="font-medium text-slate-800">Set Goals</h4>
-                <p className="text-sm text-slate-600">Break down chapters into smaller tasks</p>
+                <p className="text-sm text-slate-600">
+                  Break down chapters into smaller tasks
+                </p>
               </div>
             </div>
             <div className="flex items-start space-x-3">
@@ -290,12 +440,14 @@ export default function SubjectsPage() {
               </div>
               <div>
                 <h4 className="font-medium text-slate-800">Track Progress</h4>
-                <p className="text-sm text-slate-600">Monitor your learning journey</p>
+                <p className="text-sm text-slate-600">
+                  Monitor your learning journey
+                </p>
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

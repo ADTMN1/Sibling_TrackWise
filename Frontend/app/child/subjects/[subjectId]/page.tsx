@@ -1,77 +1,158 @@
-"use client"
+"use client";
 
-import { useParams, useRouter } from "next/navigation"
-import { useProgress } from "@/contexts/ProgressContext"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { Lock, CheckCircle, BookOpen, Clock, Trophy, ChevronLeft } from "lucide-react"
-import Link from "next/link"
+import { useParams, useRouter } from "next/navigation";
+import { useProgress } from "@/contexts/ProgressContext";
+import { useEffect, useState } from "react";
+import { Calculator, Globe, Code } from "lucide-react";
+import { FaFlask, FaBook } from "react-icons/fa";
 
-const subjects = {
-  math: { name: "Mathematics", color: "from-blue-500 to-blue-600", icon: "📊" },
-  science: { name: "Science", color: "from-green-500 to-green-600", icon: "🔬" },
-  english: { name: "English", color: "from-purple-500 to-purple-600", icon: "📚" },
-  history: { name: "History", color: "from-orange-500 to-orange-600", icon: "🏛️" },
-}
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  Mathematics: Calculator,
+  Science: FaFlask,
+  English: FaBook,
+  Geography: Globe,
+  Programming: Code,
+};
 
-const chapters = [
-  { id: "chapter-1", title: "Introduction to Basics", semester: 1 },
-  { id: "chapter-2", title: "Fundamental Concepts", semester: 1 },
-  { id: "chapter-3", title: "Advanced Topics", semester: 1 },
-  { id: "chapter-4", title: "Practical Applications", semester: 1 },
-  { id: "chapter-5", title: "Problem Solving", semester: 1 },
-  { id: "chapter-6", title: "Complex Theories", semester: 2 },
-  { id: "chapter-7", title: "Real World Examples", semester: 2 },
-  { id: "chapter-8", title: "Advanced Techniques", semester: 2 },
-  { id: "chapter-9", title: "Expert Level", semester: 2 },
-  { id: "chapter-10", title: "Mastery Assessment", semester: 2 },
-]
+import {
+  Lock,
+  CheckCircle,
+  BookOpen,
+  Clock,
+  Trophy,
+  ChevronLeft,
+} from "lucide-react";
+import Link from "next/link";
 
 export default function SubjectPage() {
-  const router = useRouter()
-  const params = useParams()
-  const subjectId = params.subjectId as string
-  const { getChapterProgress, isChapterUnlocked } = useProgress()
+  const router = useRouter();
+  const params = useParams();
+  const subjectId = params.subjectId as string;
+  const { getChapterProgress, isChapterUnlocked } = useProgress();
 
-  const subject = subjects[subjectId as keyof typeof subjects]
+  const [subject, setSubject] = useState<null | {
+    _id: string;
+    name: string;
+    icon: React.ComponentType<{ className?: string }>;
+    color: string;
+  }>(null);
 
-  if (!subject) {
-    return <div>Subject not found</div>
-  }
+  const [chapters, setChapters] = useState<
+    Array<{
+      _id: string;
+      title: string;
+      semester: number;
+      totalPages: number;
+    }>
+  >([]);
 
-  const semester1Chapters = chapters.filter((ch) => ch.semester === 1)
-  const semester2Chapters = chapters.filter((ch) => ch.semester === 2)
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const semester1Completed = semester1Chapters.every((ch) => getChapterProgress(subjectId, ch.id).completed)
+  useEffect(() => {
+    async function fetchSubject() {
+      try {
+        const res = await fetch(
+          `http://localhost:5000/api/subjects/${subjectId}`
+        );
+        if (!res.ok) throw new Error("Failed to fetch subject");
+        const data = await res.json();
+        const IconComponent = iconMap[data.name] || FaBook;
+
+        setSubject({
+          _id: data._id,
+          name: data.name,
+          icon: IconComponent,
+          color: "from-blue-500 to-blue-600",
+        });
+      } catch (err: any) {
+        setError(err.message || "Error loading subject");
+      }
+    }
+    fetchSubject();
+  }, [subjectId]);
+
+  useEffect(() => {
+    async function fetchChapters() {
+      try {
+        const res = await fetch(
+          `http://localhost:5000/api/chapters/subject/${subjectId}`
+        );
+        if (!res.ok) throw new Error("Failed to fetch chapters");
+        const data = await res.json();
+        setChapters(data);
+      } catch (err: any) {
+        setError(err.message || "Error loading chapters");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchChapters();
+  }, [subjectId]);
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
+  if (!subject) return <div>Subject not found</div>;
+
+  const semester1Chapters = chapters.filter((ch) => ch.semester === 1);
+  const semester2Chapters = chapters.filter((ch) => ch.semester === 2);
+
+  const semester1Completed = semester1Chapters.every(
+    (ch) => getChapterProgress(subjectId, ch._id).completed
+  );
 
   const getChapterStatus = (chapterId: string) => {
-    const progress = getChapterProgress(subjectId, chapterId)
-    const unlocked = isChapterUnlocked(subjectId, chapterId)
+    const firstSemester1Chapter = chapters.find((ch) => ch.semester === 1);
+    if (firstSemester1Chapter && firstSemester1Chapter._id === chapterId) {
+      return "unlocked";
+    }
 
-    if (progress.completed) return "completed"
-    if (unlocked) return "unlocked"
-    return "locked"
-  }
+    const progress = getChapterProgress(subjectId, chapterId);
+    const unlocked = isChapterUnlocked(subjectId, chapterId);
 
-  const ChapterCard = ({ chapter }: { chapter: (typeof chapters)[0] }) => {
-    const status = getChapterStatus(chapter.id)
-    const progress = getChapterProgress(subjectId, chapter.id)
-    const progressPercent = (progress.currentPage / progress.totalPages) * 100
+    if (progress.completed) return "completed";
+    if (unlocked) return "unlocked";
+    return "locked";
+  };
 
-    // Check if this is a semester 2 chapter and semester 1 is not complete
-    const isSemester2Locked = chapter.semester === 2 && !semester1Completed
+  const ChapterCard = ({
+    chapter,
+    chapterNumber,
+  }: {
+    chapter: (typeof chapters)[0];
+    chapterNumber: number;
+  }) => {
+    const status = getChapterStatus(chapter._id);
+    const progress = getChapterProgress(subjectId, chapter._id);
+    const progressPercent = (progress.currentPage / progress.totalPages) * 100;
+
+    const isSemester2Locked = chapter.semester === 2 && !semester1Completed;
 
     return (
       <Card
-        className={`chapter-card ${status === "locked" || isSemester2Locked ? "locked-chapter" : ""} ${status === "completed" ? "completed-chapter" : ""}`}
+        className={`chapter-card ${
+          status === "locked" || isSemester2Locked ? "locked-chapter" : ""
+        } ${status === "completed" ? "completed-chapter" : ""}`}
       >
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg flex items-center gap-2">
-              {status === "completed" && <CheckCircle className="w-5 h-5 text-green-500" />}
-              {(status === "locked" || isSemester2Locked) && <Lock className="w-5 h-5 text-gray-400" />}
+              {status === "completed" && (
+                <CheckCircle className="w-5 h-5 text-green-500" />
+              )}
+              {(status === "locked" || isSemester2Locked) && (
+                <Lock className="w-5 h-5 text-gray-400" />
+              )}
               {chapter.title}
             </CardTitle>
             <div className="flex flex-col items-end gap-1">
@@ -80,15 +161,15 @@ export default function SubjectPage() {
                   status === "completed"
                     ? "default"
                     : status === "unlocked" && !isSemester2Locked
-                      ? "secondary"
-                      : "outline"
+                    ? "secondary"
+                    : "outline"
                 }
               >
                 {status === "completed"
                   ? "Completed"
                   : status === "unlocked" && !isSemester2Locked
-                    ? "Available"
-                    : "Locked"}
+                  ? "Available"
+                  : "Locked"}
               </Badge>
               {progress.testScore && (
                 <Badge variant="outline" className="text-xs">
@@ -98,7 +179,7 @@ export default function SubjectPage() {
             </div>
           </div>
           <CardDescription>
-            Chapter {chapter.id.split("-")[1]} • Semester {chapter.semester}
+            Chapter {chapterNumber} • Semester {chapter.semester}
             {isSemester2Locked && " • Complete Semester 1 first"}
           </CardDescription>
         </CardHeader>
@@ -134,40 +215,63 @@ export default function SubjectPage() {
 
           <div className="flex gap-2">
             {status !== "locked" && !isSemester2Locked && (
-              <Link href={`/child/subjects/${subjectId}/chapters/${chapter.id}`} className="flex-1">
-                <Button className="w-full" variant={status === "completed" ? "outline" : "default"}>
-                  {status === "completed" ? "Review" : progress.currentPage > 1 ? "Continue" : "Start"}
+              <Link
+                href={`/child/subjects/${subjectId}/chapters/${chapter._id}`}
+                className="flex-1"
+              >
+                <Button
+                  className="w-full"
+                  variant={status === "completed" ? "outline" : "default"}
+                >
+                  {status === "completed"
+                    ? "Review"
+                    : progress.currentPage > 1
+                    ? "Continue"
+                    : "Start"}
                 </Button>
               </Link>
             )}
             {status === "completed" && (
-              <Link href={`/child/subjects/${subjectId}/chapters/${chapter.id}/test`}>
+              <Link
+                href={`/child/subjects/${subjectId}/chapters/${chapter._id}/test`}
+              >
                 <Button variant="outline" size="sm">
-                  {progress.testScore && progress.testScore >= 80 ? "Review Test" : "Retake Test"}
+                  {progress.testScore && progress.testScore >= 80
+                    ? "Review Test"
+                    : "Retake Test"}
                 </Button>
               </Link>
             )}
           </div>
         </CardContent>
       </Card>
-    )
-  }
+    );
+  };
 
   return (
     <div className="p-6 space-y-6">
-      {/* Back Button */}
-      <Button variant="ghost" onClick={() => router.push("/child/dashboard")} className="flex items-center gap-2 mb-4">
+      <Button
+        variant="ghost"
+        onClick={() => router.push("/child/dashboard")}
+        className="flex items-center gap-2 mb-4"
+      >
         <ChevronLeft className="w-4 h-4" />
         Back to Dashboard
       </Button>
 
-      {/* Subject Header */}
-      <div className={`bg-gradient-to-r ${subject.color} rounded-2xl p-6 text-white`}>
+      <div
+        className={`bg-gradient-to-r ${subject.color} rounded-2xl p-6 text-white`}
+      >
         <div className="flex items-center gap-4">
-          <div className="text-4xl">{subject.icon}</div>
+          <div className="text-4xl">
+            <subject.icon className="w-10 h-10" />
+          </div>
+
           <div>
             <h1 className="text-3xl font-bold">{subject.name}</h1>
-            <p className="text-white/80">Master the fundamentals and advanced concepts</p>
+            <p className="text-white/80">
+              Master the fundamentals and advanced concepts
+            </p>
           </div>
         </div>
       </div>
@@ -184,8 +288,12 @@ export default function SubjectPage() {
           )}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {semester1Chapters.map((chapter) => (
-            <ChapterCard key={chapter.id} chapter={chapter} />
+          {semester1Chapters.map((chapter, index) => (
+            <ChapterCard
+              key={chapter._id}
+              chapter={chapter}
+              chapterNumber={index + 1}
+            />
           ))}
         </div>
       </div>
@@ -202,8 +310,12 @@ export default function SubjectPage() {
           )}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {semester2Chapters.map((chapter) => (
-            <ChapterCard key={chapter.id} chapter={chapter} />
+          {semester2Chapters.map((chapter, index) => (
+            <ChapterCard
+              key={chapter._id}
+              chapter={chapter}
+              chapterNumber={index + 1}
+            />
           ))}
         </div>
       </div>
@@ -214,16 +326,22 @@ export default function SubjectPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-yellow-800">Mixed Questions Available!</h3>
-                <p className="text-yellow-700">Test your knowledge across multiple chapters</p>
+                <h3 className="text-lg font-semibold text-yellow-800">
+                  Mixed Questions Available!
+                </h3>
+                <p className="text-yellow-700">
+                  Test your knowledge across multiple chapters
+                </p>
               </div>
               <Link href="/child/mixed-questions">
-                <Button className="bg-yellow-500 hover:bg-yellow-600 text-white">Start Mixed Questions</Button>
+                <Button className="bg-yellow-500 hover:bg-yellow-600 text-white">
+                  Start Mixed Questions
+                </Button>
               </Link>
             </div>
           </CardContent>
         </Card>
       )}
     </div>
-  )
+  );
 }

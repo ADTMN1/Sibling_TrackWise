@@ -1,62 +1,52 @@
-"use client"
+"use client";
 
-import type React from "react"
-
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/contexts/AuthContext"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Badge } from "@/components/ui/badge"
-import { BookOpen, User, Lock, ArrowRight, Star } from "lucide-react"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { BookOpen, Mail, Lock, ArrowRight, Star } from "lucide-react";
 
 export default function LoginPage() {
-  const [username, setUsername] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const { login } = useAuth()
-  const router = useRouter()
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuth();
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setIsLoading(true)
+    e.preventDefault();
+
+    // Basic validation
+    if (!email || !password) {
+      // or !username
+      setError("Please fill in all fields");
+      return;
+    }
+
+    setIsLoading(true);
 
     try {
-      const success = await login(username, password)
-      if (success) {
-        router.push("/child/dashboard")
-      } else {
-        setError("Invalid username or password")
-      }
+      console.log("Submitting:", { email, password }); // Debug log
+      await login(email, password); // or username
+      router.push("/child/dashboard");
     } catch (err) {
-      setError("An error occurred during login")
+      console.error("Login error:", err);
+      setError(err.message || "Login failed");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
-
-  const handleDemoLogin = async (demoUsername: string, demoPassword: string) => {
-    setIsLoading(true)
-    setError("")
-
-    try {
-      const success = await login(demoUsername, demoPassword)
-      if (success) {
-        router.push("/child/dashboard")
-      } else {
-        setError("Demo login failed")
-      }
-    } catch (err) {
-      setError("An error occurred during demo login")
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
@@ -72,10 +62,12 @@ export default function LoginPage() {
                 EduPlatform
               </span>
             </div>
-            <h1 className="text-4xl font-bold text-gray-900">Welcome Back to Your Learning Journey</h1>
+            <h1 className="text-4xl font-bold text-gray-900">
+              Welcome Back to Your Learning Journey
+            </h1>
             <p className="text-xl text-gray-600">
-              Continue your personalized education experience with AI-powered learning, smart timers, and interactive
-              content.
+              Continue your personalized education experience with AI-powered
+              learning, smart timers, and interactive content.
             </p>
           </div>
 
@@ -84,13 +76,17 @@ export default function LoginPage() {
               <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
                 <Star className="w-5 h-5 text-blue-600" />
               </div>
-              <span className="text-gray-700">Smart study timers track your progress</span>
+              <span className="text-gray-700">
+                Smart study timers track your progress
+              </span>
             </div>
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
                 <Star className="w-5 h-5 text-purple-600" />
               </div>
-              <span className="text-gray-700">Interactive quizzes every 5 pages</span>
+              <span className="text-gray-700">
+                Interactive quizzes every 5 pages
+              </span>
             </div>
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
@@ -101,26 +97,27 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Right Side - Login Forms */}
+        {/* Right Side - Login Form */}
         <div className="space-y-6">
-          {/* Main Login Card */}
           <Card className="bg-white/80 backdrop-blur-sm border-white/20 shadow-xl">
             <CardHeader className="text-center">
               <CardTitle className="text-2xl font-bold">Sign In</CardTitle>
-              <CardDescription>Enter your credentials to access your learning dashboard</CardDescription>
+              <CardDescription>
+                Enter your credentials to access your learning dashboard
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
+                  <Label htmlFor="email">Email</Label>
                   <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
                       id="username"
                       type="text"
                       placeholder="Enter your username"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       className="pl-10"
                       required
                     />
@@ -138,13 +135,16 @@ export default function LoginPage() {
                       onChange={(e) => setPassword(e.target.value)}
                       className="pl-10"
                       required
+                      minLength={6}
                     />
                   </div>
                 </div>
 
                 {error && (
                   <Alert className="border-red-200 bg-red-50">
-                    <AlertDescription className="text-red-800">{error}</AlertDescription>
+                    <AlertDescription className="text-red-800">
+                      {error}
+                    </AlertDescription>
                   </Alert>
                 )}
 
@@ -153,83 +153,51 @@ export default function LoginPage() {
                   className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                   disabled={isLoading}
                 >
-                  {isLoading ? "Signing In..." : "Sign In"}
-                  <ArrowRight className="w-4 h-4 ml-2" />
+                  {isLoading ? (
+                    <span className="flex items-center">
+                      <svg
+                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Signing In...
+                    </span>
+                  ) : (
+                    <>
+                      Sign In <ArrowRight className="w-4 h-4 ml-2" />
+                    </>
+                  )}
                 </Button>
               </form>
             </CardContent>
           </Card>
 
-          {/* Demo Accounts */}
-          <Card className="bg-white/60 backdrop-blur-sm border-white/20">
-            <CardHeader>
-              <CardTitle className="text-lg">Try Demo Accounts</CardTitle>
-              <CardDescription>Quick access to pre-configured student accounts</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button
-                onClick={() => handleDemoLogin("student1", "pass123")}
-                disabled={isLoading}
-                variant="outline"
-                className="w-full justify-between bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200 hover:from-blue-100 hover:to-blue-200"
-              >
-                <div className="flex items-center">
-                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mr-3">
-                    <span className="text-white text-sm font-bold">JD</span>
-                  </div>
-                  <div className="text-left">
-                    <div className="font-medium text-blue-800">John Doe</div>
-                    <div className="text-xs text-blue-600">Grade 5 • student1/pass123</div>
-                  </div>
-                </div>
-                <Badge className="bg-blue-200 text-blue-800">Beginner</Badge>
-              </Button>
-
-              <Button
-                onClick={() => handleDemoLogin("student2", "pass456")}
-                disabled={isLoading}
-                variant="outline"
-                className="w-full justify-between bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200 hover:from-purple-100 hover:to-purple-200"
-              >
-                <div className="flex items-center">
-                  <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center mr-3">
-                    <span className="text-white text-sm font-bold">JS</span>
-                  </div>
-                  <div className="text-left">
-                    <div className="font-medium text-purple-800">Jane Smith</div>
-                    <div className="text-xs text-purple-600">Grade 6 • student2/pass456</div>
-                  </div>
-                </div>
-                <Badge className="bg-purple-200 text-purple-800">Intermediate</Badge>
-              </Button>
-
-              <Button
-                onClick={() => handleDemoLogin("student3", "pass789")}
-                disabled={isLoading}
-                variant="outline"
-                className="w-full justify-between bg-gradient-to-r from-green-50 to-green-100 border-green-200 hover:from-green-100 hover:to-green-200"
-              >
-                <div className="flex items-center">
-                  <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center mr-3">
-                    <span className="text-white text-sm font-bold">MJ</span>
-                  </div>
-                  <div className="text-left">
-                    <div className="font-medium text-green-800">Mike Johnson</div>
-                    <div className="text-xs text-green-600">Grade 7 • student3/pass789</div>
-                  </div>
-                </div>
-                <Badge className="bg-green-200 text-green-800">Advanced</Badge>
-              </Button>
-            </CardContent>
-          </Card>
-
           <div className="text-center">
-            <Button variant="ghost" onClick={() => router.push("/")} className="text-gray-600 hover:text-gray-800">
+            <Button
+              variant="ghost"
+              onClick={() => router.push("/")}
+              className="text-gray-600 hover:text-gray-800"
+            >
               ← Back to Home
             </Button>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

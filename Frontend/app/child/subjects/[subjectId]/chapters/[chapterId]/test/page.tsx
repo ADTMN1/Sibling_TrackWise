@@ -1,14 +1,14 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useParams, useRouter } from "next/navigation"
-import { useProgress } from "@/contexts/ProgressContext"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Trophy, AlertCircle, CheckCircle, X } from "lucide-react"
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useProgress } from "@/contexts/ProgressContext";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Trophy, AlertCircle, CheckCircle, X } from "lucide-react";
 
 const testQuestions = [
   {
@@ -32,7 +32,8 @@ const testQuestions = [
       "Copying from external sources",
     ],
     correct: 1,
-    explanation: "A systematic step-by-step approach ensures thorough understanding and consistent results.",
+    explanation:
+      "A systematic step-by-step approach ensures thorough understanding and consistent results.",
   },
   {
     question: "What should you do when encountering difficult concepts?",
@@ -67,123 +68,128 @@ const testQuestions = [
       "Completing assignments quickly",
     ],
     correct: 1,
-    explanation: "Consistent practice combined with deep understanding creates lasting mastery of the subject.",
+    explanation:
+      "Consistent practice combined with deep understanding creates lasting mastery of the subject.",
   },
-]
+];
 
 export default function ChapterTestPage() {
-  const params = useParams()
-  const router = useRouter()
-  const subjectId = params.subjectId as string
-  const chapterId = params.chapterId as string
+  const params = useParams();
+  const router = useRouter();
+  const subjectId = params.subjectId as string;
+  const chapterId = params.chapterId as string;
 
-  const { getChapterProgress, updateChapterProgress } = useProgress()
-  const [currentQuestion, setCurrentQuestion] = useState(0)
-  const [selectedAnswers, setSelectedAnswers] = useState<number[]>([])
-  const [showResults, setShowResults] = useState(false)
-  const [testStarted, setTestStarted] = useState(false)
+  const { getChapterProgress, updateChapterProgress } = useProgress();
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
+  const [showResults, setShowResults] = useState(false);
+  const [testStarted, setTestStarted] = useState(false);
 
   // Add state for test timer at the top of the component
-  const [testTimeRemaining, setTestTimeRemaining] = useState(1800) // 30 minutes in seconds
-  const [testTimerActive, setTestTimerActive] = useState(false)
+  const [testTimeRemaining, setTestTimeRemaining] = useState(1800); // 30 minutes in seconds
+  const [testTimerActive, setTestTimerActive] = useState(false);
 
-  const chapterProgress = getChapterProgress(subjectId, chapterId)
-  const isRetake = chapterProgress.testAttempts > 0
+  const chapterProgress = getChapterProgress(subjectId, chapterId);
+  const isRetake = chapterProgress.testAttempts > 0;
 
   // Update handleStartTest function
   const handleStartTest = () => {
-    setTestStarted(true)
-    setTestTimerActive(true)
+    setTestStarted(true);
+    setTestTimerActive(true);
     updateChapterProgress(subjectId, chapterId, {
       testAttempts: chapterProgress.testAttempts + 1,
-    })
-  }
+    });
+  };
 
   const handleAnswerSelect = (answerIndex: number) => {
-    const newAnswers = [...selectedAnswers]
-    newAnswers[currentQuestion] = answerIndex
-    setSelectedAnswers(newAnswers)
-  }
+    const newAnswers = [...selectedAnswers];
+    newAnswers[currentQuestion] = answerIndex;
+    setSelectedAnswers(newAnswers);
+  };
 
   const handleNext = () => {
     if (currentQuestion < testQuestions.length - 1) {
-      setCurrentQuestion((prev) => prev + 1)
+      setCurrentQuestion((prev) => prev + 1);
     } else {
-      setShowResults(true)
+      setShowResults(true);
     }
-  }
+  };
 
   const handlePrevious = () => {
     if (currentQuestion > 0) {
-      setCurrentQuestion((prev) => prev - 1)
+      setCurrentQuestion((prev) => prev - 1);
     }
-  }
+  };
 
   const calculateScore = () => {
-    let correct = 0
+    let correct = 0;
     testQuestions.forEach((question, index) => {
       if (selectedAnswers[index] === question.correct) {
-        correct++
+        correct++;
       }
-    })
+    });
 
     // First attempt: score out of 100
     if (chapterProgress.testAttempts === 0) {
-      return Math.round((correct / testQuestions.length) * 100)
+      return Math.round((correct / testQuestions.length) * 100);
     }
 
     // Retakes: score out of 80
-    return Math.round((correct / testQuestions.length) * 80)
-  }
+    return Math.round((correct / testQuestions.length) * 80);
+  };
 
   const handleTestComplete = () => {
-    const score = calculateScore()
-    const passed = score >= 80
+    const score = calculateScore();
+    const passed = score >= 80;
 
     // For retakes, only update if the new score is better
-    let finalScore = score
+    let finalScore = score;
     if (chapterProgress.testAttempts > 0 && chapterProgress.testScore) {
-      finalScore = Math.max(score, chapterProgress.testScore)
+      finalScore = Math.max(score, chapterProgress.testScore);
     }
 
     updateChapterProgress(subjectId, chapterId, {
       testCompleted: passed,
       testScore: finalScore,
-    })
+    });
 
     if (passed) {
-      router.push(`/child/subjects/${subjectId}`)
+      router.push(`/child/subjects/${subjectId}`);
     }
-  }
+  };
 
   // Add timer effect after other useEffects
   useEffect(() => {
-    let interval: NodeJS.Timeout
+    let interval: NodeJS.Timeout;
     if (testTimerActive && testTimeRemaining > 0) {
       interval = setInterval(() => {
         setTestTimeRemaining((prev) => {
           if (prev <= 1) {
-            setShowResults(true)
-            return 0
+            setShowResults(true);
+            return 0;
           }
-          return prev - 1
-        })
-      }, 1000)
+          return prev - 1;
+        });
+      }, 1000);
     }
-    return () => clearInterval(interval)
-  }, [testTimerActive, testTimeRemaining])
+    return () => clearInterval(interval);
+  }, [testTimerActive, testTimeRemaining]);
 
   // Add timer display in the test interface
   const formatTestTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${minutes}:${secs.toString().padStart(2, "0")}`
-  }
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${minutes}:${secs.toString().padStart(2, "0")}`;
+  };
 
   if (!testStarted) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <Button variant="ghost" onClick={() => router.push(`/child/subjects/${subjectId}`)} className="self-start mb-4">
+        <Button
+          variant="ghost"
+          onClick={() => router.push(`/child/subjects/${subjectId}`)}
+          className="self-start mb-4"
+        >
           ← Back to Chapters
         </Button>
         <Card className="w-full max-w-2xl">
@@ -213,13 +219,16 @@ export default function ChapterTestPage() {
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
                     This is attempt #{chapterProgress.testAttempts + 1}.
-                    {chapterProgress.testAttempts > 0 && " Your score will be calculated out of 80%."}
+                    {chapterProgress.testAttempts > 0 &&
+                      " Your score will be calculated out of 80%."}
                   </AlertDescription>
                 </Alert>
               )}
 
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-semibold text-blue-800 mb-2">Test Information</h4>
+                <h4 className="font-semibold text-blue-800 mb-2">
+                  Test Information
+                </h4>
                 <ul className="text-sm text-blue-700 space-y-1">
                   <li>• {testQuestions.length} questions</li>
                   <li>• 80% required to pass</li>
@@ -239,13 +248,15 @@ export default function ChapterTestPage() {
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   if (showResults) {
-    const score = calculateScore()
-    const passed = score >= 80
-    const correctAnswers = selectedAnswers.filter((answer, index) => answer === testQuestions[index].correct).length
+    const score = calculateScore();
+    const passed = score >= 80;
+    const correctAnswers = selectedAnswers.filter(
+      (answer, index) => answer === testQuestions[index].correct
+    ).length;
 
     return (
       <div className="min-h-screen bg-gray-50 p-6">
@@ -258,21 +269,31 @@ export default function ChapterTestPage() {
                   passed ? "bg-green-500" : "bg-red-500"
                 }`}
               >
-                {passed ? <CheckCircle className="w-8 h-8 text-white" /> : <X className="w-8 h-8 text-white" />}
+                {passed ? (
+                  <CheckCircle className="w-8 h-8 text-white" />
+                ) : (
+                  <X className="w-8 h-8 text-white" />
+                )}
               </div>
-              <CardTitle className="text-2xl">Test {passed ? "Passed!" : "Not Passed"}</CardTitle>
+              <CardTitle className="text-2xl">
+                Test {passed ? "Passed!" : "Not Passed"}
+              </CardTitle>
             </CardHeader>
             <CardContent className="text-center space-y-4">
-              <div className="text-4xl font-bold text-blue-600 mb-2">{score}%</div>
+              <div className="text-4xl font-bold text-blue-600 mb-2">
+                {score}%
+              </div>
               <p className="text-gray-600">
-                You got {correctAnswers} out of {testQuestions.length} questions correct
+                You got {correctAnswers} out of {testQuestions.length} questions
+                correct
               </p>
 
               {!passed && (
                 <Alert className="border-red-200 bg-red-50">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription className="text-red-700">
-                    You need 80% to pass. Please review the chapter and try again.
+                    You need 80% to pass. Please review the chapter and try
+                    again.
                   </AlertDescription>
                 </Alert>
               )}
@@ -292,11 +313,16 @@ export default function ChapterTestPage() {
           <div className="space-y-4">
             <h3 className="text-xl font-semibold">Review Your Answers</h3>
             {testQuestions.map((question, index) => {
-              const userAnswer = selectedAnswers[index]
-              const isCorrect = userAnswer === question.correct
+              const userAnswer = selectedAnswers[index];
+              const isCorrect = userAnswer === question.correct;
 
               return (
-                <Card key={index} className={`border-l-4 ${isCorrect ? "border-l-green-500" : "border-l-red-500"}`}>
+                <Card
+                  key={index}
+                  className={`border-l-4 ${
+                    isCorrect ? "border-l-green-500" : "border-l-red-500"
+                  }`}
+                >
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
                       {isCorrect ? (
@@ -318,23 +344,30 @@ export default function ChapterTestPage() {
                             optionIndex === question.correct
                               ? "bg-green-50 border-green-300 text-green-800"
                               : userAnswer === optionIndex
-                                ? "bg-red-50 border-red-300 text-red-800"
-                                : "bg-gray-50 border-gray-200"
+                              ? "bg-red-50 border-red-300 text-red-800"
+                              : "bg-gray-50 border-gray-200"
                           }`}
                         >
                           <div className="flex items-center justify-between">
                             <span>{option}</span>
                             <div className="flex gap-2">
                               {optionIndex === question.correct && (
-                                <Badge variant="secondary" className="bg-green-100 text-green-800">
+                                <Badge
+                                  variant="secondary"
+                                  className="bg-green-100 text-green-800"
+                                >
                                   Correct
                                 </Badge>
                               )}
-                              {userAnswer === optionIndex && optionIndex !== question.correct && (
-                                <Badge variant="secondary" className="bg-red-100 text-red-800">
-                                  Your Answer
-                                </Badge>
-                              )}
+                              {userAnswer === optionIndex &&
+                                optionIndex !== question.correct && (
+                                  <Badge
+                                    variant="secondary"
+                                    className="bg-red-100 text-red-800"
+                                  >
+                                    Your Answer
+                                  </Badge>
+                                )}
                             </div>
                           </div>
                         </div>
@@ -342,12 +375,16 @@ export default function ChapterTestPage() {
                     </div>
 
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                      <h5 className="font-semibold text-blue-800 mb-1">Explanation:</h5>
-                      <p className="text-blue-700 text-sm">{question.explanation}</p>
+                      <h5 className="font-semibold text-blue-800 mb-1">
+                        Explanation:
+                      </h5>
+                      <p className="text-blue-700 text-sm">
+                        {question.explanation}
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
-              )
+              );
             })}
           </div>
 
@@ -363,19 +400,23 @@ export default function ChapterTestPage() {
             ) : (
               <>
                 <Button
-                  onClick={() => router.push(`/child/subjects/${subjectId}/chapters/${chapterId}`)}
+                  onClick={() =>
+                    router.push(
+                      `/child/subjects/${subjectId}/chapters/${chapterId}`
+                    )
+                  }
                   variant="outline"
                 >
                   Review Chapter
                 </Button>
                 <Button
                   onClick={() => {
-                    setTestStarted(false)
-                    setCurrentQuestion(0)
-                    setSelectedAnswers([])
-                    setShowResults(false)
-                    setTestTimeRemaining(1800)
-                    setTestTimerActive(false)
+                    setTestStarted(false);
+                    setCurrentQuestion(0);
+                    setSelectedAnswers([]);
+                    setShowResults(false);
+                    setTestTimeRemaining(1800);
+                    setTestTimerActive(false);
                   }}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
@@ -386,7 +427,7 @@ export default function ChapterTestPage() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -405,16 +446,25 @@ export default function ChapterTestPage() {
                 </Badge>
               </div>
             </div>
-            <Progress value={((currentQuestion + 1) / testQuestions.length) * 100} className="h-2" />
+            <Progress
+              value={((currentQuestion + 1) / testQuestions.length) * 100}
+              className="h-2"
+            />
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
-              <h3 className="text-lg font-medium mb-4">{testQuestions[currentQuestion].question}</h3>
+              <h3 className="text-lg font-medium mb-4">
+                {testQuestions[currentQuestion].question}
+              </h3>
               <div className="space-y-3">
                 {testQuestions[currentQuestion].options.map((option, index) => (
                   <Button
                     key={index}
-                    variant={selectedAnswers[currentQuestion] === index ? "default" : "outline"}
+                    variant={
+                      selectedAnswers[currentQuestion] === index
+                        ? "default"
+                        : "outline"
+                    }
                     className="w-full text-left justify-start h-auto p-4"
                     onClick={() => handleAnswerSelect(index)}
                   >
@@ -425,19 +475,29 @@ export default function ChapterTestPage() {
             </div>
 
             <div className="flex justify-between">
-              <Button variant="outline" onClick={handlePrevious} disabled={currentQuestion === 0}>
+              <Button
+                variant="outline"
+                onClick={handlePrevious}
+                disabled={currentQuestion === 0}
+              >
                 Previous
               </Button>
               <Button
-                onClick={currentQuestion === testQuestions.length - 1 ? handleTestComplete : handleNext}
+                onClick={
+                  currentQuestion === testQuestions.length - 1
+                    ? handleTestComplete
+                    : handleNext
+                }
                 disabled={selectedAnswers[currentQuestion] === undefined}
               >
-                {currentQuestion === testQuestions.length - 1 ? "Finish Test" : "Next"}
+                {currentQuestion === testQuestions.length - 1
+                  ? "Finish Test"
+                  : "Next"}
               </Button>
             </div>
           </CardContent>
         </Card>
       </div>
     </div>
-  )
+  );
 }
