@@ -9,4 +9,10 @@ router.get("/", subjectController.getAllSubjects);
 // Get subject by ID
 router.get("/:id", subjectController.getSubjectById);
 
+// In your routes file
+
+router.get(
+  "/with-counts/chapters",
+  subjectController.getSubjectsWithChapterCounts
+);
 module.exports = router;

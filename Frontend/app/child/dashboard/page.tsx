@@ -41,11 +41,17 @@ const iconComponents: Record<string, React.ComponentType<any>> = {
 interface Subject {
   _id: string;
   name: string;
+  description?: string;
   icon?: string;
   gradient?: string;
   bgGradient?: string;
   borderColor?: string;
-  totalChapters?: number;
+  chapters?: string[]; // Array of chapter IDs
+  estimatedTime?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  __v?: number;
+  totalChapters: number; // Now required from backend
 }
 
 interface Progress {
@@ -158,16 +164,36 @@ export default function DashboardPage() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [subjectsRes] = await Promise.all([
+
+        const [subjectsRes, subjectsWithCountsRes] = await Promise.all([
           fetch("http://localhost:5000/api/subjects"),
+          fetch("http://localhost:5000/api/subjects/with-counts/chapters"),
+          // fetch("http://localhost:5000/api/progress"),
         ]);
 
         if (!subjectsRes.ok) throw new Error("Failed to fetch subjects");
+        if (!subjectsWithCountsRes.ok)
+          throw new Error("Failed to fetch subjects with counts");
+        // if (!progressRes.ok) throw new Error("Failed to fetch progress");
 
-        let subjectsData = await subjectsRes.json();
+        const subjectsData = await subjectsRes.json();
+        const subjectsWithCountsData = await subjectsWithCountsRes.json();
+        // const progressData = await progressRes.json();
 
-        // Assign gradients and icons based on subject name
-        subjectsData = subjectsData.map((subject: Subject) => {
+        // Create a lookup for totalChapters from with-counts API
+        const chaptersLookup = subjectsWithCountsData.reduce(
+          (
+            acc: Record<string, number>,
+            subj: { _id: string; totalChapters?: number }
+          ) => {
+            acc[subj._id] = subj.totalChapters || 0;
+            return acc;
+          },
+          {}
+        );
+
+        // Merge styling + totalChapters
+        const mappedSubjects = subjectsData.map((subject: Subject) => {
           const subjectConfig = subjectMap[subject.name] || subjectMap.default;
           return {
             ...subject,
@@ -175,11 +201,13 @@ export default function DashboardPage() {
             bgGradient: subjectConfig.bgGradient,
             borderColor: subjectConfig.borderColor,
             icon: subjectConfig.icon,
+            totalChapters: chaptersLookup[subject._id] || 0,
           };
         });
 
-        setSubjects(subjectsData);
-        calculateStats(subjectsData, progressData);
+        setSubjects(mappedSubjects);
+        setProgressData(progressData);
+        calculateStats(mappedSubjects, progressData);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load data");
       } finally {
@@ -213,7 +241,7 @@ export default function DashboardPage() {
     });
 
     const overallProgress =
-      completedChapters > 0
+      totalChapters > 0
         ? Math.round((completedChapters / totalChapters) * 100)
         : 0;
 
@@ -225,7 +253,7 @@ export default function DashboardPage() {
         subjectsWithScores > 0
           ? Math.round(totalScore / subjectsWithScores)
           : 0,
-      studyStreak: 7,
+      studyStreak: 7, // You might want to fetch this from backend
       totalStudyTime,
       weeklyProgress: overallProgress,
       upcomingTests: upcomingLessons.length,

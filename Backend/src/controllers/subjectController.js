@@ -51,3 +51,12 @@ exports.deleteSubject = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+exports.getSubjectsWithChapterCounts = async (req, res) => {
+  try {
+    const subjects = await SubjectService.getSubjectsWithChapterCounts();
+    res.json(subjects);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

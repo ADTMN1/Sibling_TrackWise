@@ -1,4 +1,5 @@
 "use client";
+import axios from "axios";
 
 import type React from "react";
 import { createContext, useContext, useState, useEffect } from "react";
@@ -15,6 +16,7 @@ interface ChapterProgress {
   testAttempts: number;
   timeSpent: number;
   lastAccessed: Date;
+  completedAt?: string;
 }
 
 interface SubjectProgress {
@@ -34,6 +36,13 @@ interface SubjectStats {
 
 interface ProgressContextType {
   progress: Progress;
+  syncProgressWithBackend: (userId: string) => Promise<void>;
+  saveProgressToBackend: (
+    userId: string,
+    subjectId: string,
+    chapterId: string,
+    updates: Partial<ChapterProgress>
+  ) => Promise<void>;
   updateChapterProgress: (
     subjectId: string,
     chapterId: string,
@@ -53,6 +62,33 @@ const ProgressContext = createContext<ProgressContextType | undefined>(
 
 export function ProgressProvider({ children }: { children: React.ReactNode }) {
   const [progress, setProgress] = useState<Progress>({});
+
+  const syncProgressWithBackend = async (userId: string) => {
+    try {
+      const response = await axios.get(
+        `http://localhost:5000/api/progress/${userId}`
+      );
+      setProgress(response.data);
+    } catch (error) {
+      console.error("Error syncing progress:", error);
+    }
+  };
+
+  const saveProgressToBackend = async (
+    userId: string,
+    subjectId: string,
+    chapterId: string,
+    updates: Partial<ChapterProgress>
+  ) => {
+    try {
+      await axios.patch(
+        `http://localhost:5000/api//progress/${userId}/${subjectId}/${chapterId}`,
+        updates
+      );
+    } catch (error) {
+      console.error("Error saving progress:", error);
+    }
+  };
 
   useEffect(() => {
     try {
@@ -281,6 +317,8 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
         getSubjectProgress,
         getOverallProgress,
         resetProgress,
+        syncProgressWithBackend,
+        saveProgressToBackend,
       }}
     >
       {children}

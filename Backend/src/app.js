@@ -27,10 +27,11 @@ app.use("/api/users", userRoutes);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/progress", progressRoutes);
-app.use("/api/admin", adminRoutes); // Admin creates/updates
-app.use("/api/subjects", subjectRoutes); // Users fetch subjects
-app.use("/api/chapters", chapterRoutes); // Users fetch chapters
+app.use("/api/admin", adminRoutes);
+app.use("/api/subjects", subjectRoutes);
+app.use("/api/chapters", chapterRoutes);
 app.use("/api/chapterpages", chapterPageRoutes);
+app.use("/api/progress", progressRoutes);
 
 app.get("/", (req, res) => {
   res.send("Welcome to Sibling TrackWise Backend!");

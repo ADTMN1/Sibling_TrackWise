@@ -1,43 +1,51 @@
 const ChapterPage = require("../models/chapterPage");
 
 class ChapterPageService {
-  // Create a new page
-  async createPage({ chapterId, pageNumber, title, content }) {
-    if (!chapterId || !pageNumber || !title || !content) {
-      throw new Error("Missing required fields");
+  async createPage({ chapter, pageNumber, title, content }) {
+    const missingFields = [];
+    if (!chapter) missingFields.push("chapter");
+    if (!pageNumber) missingFields.push("pageNumber");
+    if (!title) missingFields.push("title");
+    if (!content) missingFields.push("content");
+
+    if (missingFields.length > 0) {
+      throw new Error(`Missing fields: ${missingFields.join(", ")}`);
     }
 
-    // Optional: Check if a page with same chapter & pageNumber already exists
-    const existingPage = await ChapterPage.findOne({
-      chapter: chapterId,
-      pageNumber,
-    });
+    const existingPage = await ChapterPage.findOne({ chapter, pageNumber });
     if (existingPage) {
-      throw new Error("Page already exists");
+      throw new Error(`Page ${pageNumber} already exists in this chapter`);
     }
 
-    const newPage = new ChapterPage({
-      chapter: chapterId,
-      pageNumber,
-      title,
-      content,
-    });
-
-    return await newPage.save();
+    return await ChapterPage.create({ chapter, pageNumber, title, content });
   }
 
-  // Get a single page by chapter and pageNumber
   async getPage(chapterId, pageNumber) {
-    const page = await ChapterPage.findOne({ chapter: chapterId, pageNumber });
+    const numericPage = Number(pageNumber);
+    if (isNaN(numericPage)) {
+      throw new Error(`Invalid pageNumber: ${pageNumber}`);
+    }
+
+    const page = await ChapterPage.findOne({
+      chapter: chapterId,
+      pageNumber: numericPage,
+    }).populate("chapter", "title");
+
     if (!page) {
-      throw new Error("Page not found");
+      throw new Error(`Page ${numericPage} not found in chapter ${chapterId}`);
     }
     return page;
   }
 
-  // Optional: get all pages for a chapter
   async getPagesByChapter(chapterId) {
-    return await ChapterPage.find({ chapter: chapterId }).sort("pageNumber");
+    const pages = await ChapterPage.find({ chapter: chapterId })
+      .sort("pageNumber")
+      .populate("chapter", "title");
+
+    if (pages.length === 0) {
+      throw new Error(`No pages found for chapter ${chapterId}`);
+    }
+    return pages;
   }
 }
 

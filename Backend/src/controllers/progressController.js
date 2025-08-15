@@ -1,40 +1,80 @@
 const progressService = require("../services/progressService");
 
-const updateChapterProgress = async (req, res) => {
-  const { userId, subjectId, chapterId } = req.body;
-
-  if (!userId || !subjectId || !chapterId) {
-    return res.status(400).json({ message: "Missing required fields" });
-  }
-
+const getProgress = async (req, res) => {
   try {
-    const updatedProgress = await progressService.updateProgress(
+    const { userId, subjectId } = req.params;
+    const progress = await progressService.getSubjectProgress(
+      userId,
+      subjectId
+    );
+    res.json(progress);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const getChapterProgress = async (req, res) => {
+  try {
+    const { userId, subjectId, chapterId } = req.params;
+    const progress = await progressService.getChapterProgress(
       userId,
       subjectId,
       chapterId
     );
-    res.json(updatedProgress);
-  } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Error updating progress", error: err.message });
+    res.json(progress);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };
 
-const getUserProgress = async (req, res) => {
-  const { userId, subjectId } = req.params;
-
+const updateChapterProgress = async (req, res) => {
   try {
-    const progress = await progressService.getProgress(userId, subjectId);
+    const { userId, subjectId, chapterId } = req.params;
+    const progress = await progressService.updateChapterProgress(
+      userId,
+      subjectId,
+      chapterId,
+      req.body
+    );
     res.json(progress);
-  } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Error fetching progress", error: err.message });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const markChapterComplete = async (req, res) => {
+  try {
+    const { userId, subjectId, chapterId } = req.params;
+    const progress = await progressService.markChapterComplete(
+      userId,
+      subjectId,
+      chapterId
+    );
+    res.json(progress);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const createProgress = async (req, res) => {
+  try {
+    const { userId, subjectId, chapterId } = req.params;
+    const progress = await progressService.createProgress(
+      userId,
+      subjectId,
+      chapterId,
+      req.body
+    );
+    res.status(201).json(progress);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };
 
 module.exports = {
+  createProgress,
+  getProgress,
+  getChapterProgress,
   updateChapterProgress,
-  getUserProgress,
+  markChapterComplete,
 };

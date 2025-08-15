@@ -1,50 +1,71 @@
 const Progress = require("../models/progressModel");
 
-const updateProgress = async (userId, subjectId, chapterId, pagesRead = 1) => {
-  const progress = await Progress.findOne({ userId, subjectId });
+class ProgressService {
+  // Get progress for a user in a subject and chapter
+  async getChapterProgress(userId, subjectId, chapterId) {
+    return Progress.findOne({ userId, subjectId, chapterId });
+  }
 
-  if (!progress) {
-    const newProgress = new Progress({
+  // Get all progress for a user in a subject
+  async getSubjectProgress(userId, subjectId) {
+    return Progress.find({ userId, subjectId });
+  }
+
+  // Update reading progress (start/stop pages, quiz, test)
+  async updateChapterProgress(userId, subjectId, chapterId, updateData) {
+    const {
+      startPage,
+      stopPage,
+      quizScore,
+      finalTestScore,
+      topic,
+      totalPages,
+    } = updateData;
+
+    let progress = await Progress.findOne({ userId, subjectId, chapterId });
+
+    if (!progress) {
+      progress = new Progress({
+        userId,
+        subjectId,
+        chapterId,
+        topic,
+        totalPages,
+      });
+    }
+
+    if (startPage !== undefined) progress.startPage = startPage;
+    if (stopPage !== undefined) progress.stopPage = stopPage;
+    if (quizScore !== undefined) progress.quizScore = quizScore;
+    if (finalTestScore !== undefined) progress.finalTestScore = finalTestScore;
+    if (topic !== undefined) progress.topic = topic;
+    if (totalPages !== undefined) progress.totalPages = totalPages;
+
+    return progress.save();
+  }
+
+  // Mark chapter as complete (set stopPage = totalPages)
+  async markChapterComplete(userId, subjectId, chapterId) {
+    const progress = await Progress.findOne({ userId, subjectId, chapterId });
+
+    if (!progress) {
+      throw new Error("Progress record not found");
+    }
+
+    progress.stopPage = progress.totalPages;
+    progress.isCompleted = true;
+
+    return progress.save();
+  }
+  async createProgress(userId, subjectId, chapterId, data) {
+    const progress = new Progress({
       userId,
       subjectId,
-      chapterProgress: [
-        {
-          chapterId,
-          pagesRead,
-          totalPages: pagesRead,
-        },
-      ],
-    });
-    return await newProgress.save();
-  }
-
-  const chapterIndex = progress.chapterProgress.findIndex((c) =>
-    c.chapterId.equals(chapterId)
-  );
-
-  if (chapterIndex > -1) {
-    progress.chapterProgress[chapterIndex].pagesRead = Math.min(
-      progress.chapterProgress[chapterIndex].pagesRead + pagesRead,
-      progress.chapterProgress[chapterIndex].totalPages
-    );
-  } else {
-    progress.chapterProgress.push({
       chapterId,
-      pagesRead,
-      totalPages: pagesRead,
+      ...data,
     });
+    return progress.save();
   }
+}
 
-  return await progress.save();
-};
-
-const getProgress = async (userId, subjectId) => {
-  return await Progress.findOne({ userId, subjectId }).populate(
-    "chapterProgress.chapterId"
-  );
-};
-
-module.exports = {
-  updateProgress,
-  getProgress,
-};
+module.exports = new ProgressService();

@@ -105,7 +105,7 @@ export default function SubjectsPage() {
             bgGradient: "from-[#F8FAFC] to-[#F1F5F9]",
             icon: "Globe",
           },
-          Programming: {
+          Chemistry: {
             gradient: "from-blue-500 to-cyan-500",
             bgGradient: "from-blue-50 to-cyan-50",
             icon: "FaCode",
